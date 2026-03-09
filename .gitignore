@@ -1,0 +1,28 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Firebase credentials
+config/firebase_credentials.json
+*.json
+
+# Ignore downloaded json if they moved it here
+resume-shortlisting-syst*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Uploads
+uploads/
+
+# IDE files
+.vscode/
+.idea/

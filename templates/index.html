@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Resume Shortlisting System{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Intelligent Resume Shortlisting System</h1>
+    <p>Automate your recruitment process with weighted skill scoring, intelligent resume parsing, and AI-driven feedback
+        for candidates.</p>
+    <div class="hero-actions">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">Get Started</a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-lg"
+            style="background-color: white; border: 1px solid var(--border); color: var(--text-primary);">Log In</a>
+    </div>
+</div>
+{% endblock %}

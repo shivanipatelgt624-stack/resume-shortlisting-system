@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Success | Resume Shortlisting System{% endblock %}
+
+{% block content %}
+<div
+    style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50vh; text-align: center;">
+    <div
+        style="background-color: #dcfce7; color: #166534; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 1.5rem;">
+        ✓
+    </div>
+    <h2 style="margin-bottom: 1rem;">Authentication Successful!</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 2rem;">You are securely logged in. Redirecting to your
+        dashboard...</p>
+
+    <div class="spinner"
+        style="border: 4px solid rgba(0,0,0,0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--primary); animation: spin 1s linear infinite;">
+    </div>
+</div>
+
+<style>
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+<script>
+    // Dummy redirection after 2 seconds
+    setTimeout(() => {
+        window.location.href = "/";
+    }, 2000);
+</script>
+{% endblock %}

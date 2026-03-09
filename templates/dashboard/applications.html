@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Applicants for {{ job.title }} | Resume Shortlisting System{% endblock %}
+
+{% block content %}
+<div class="dashboard-header"
+    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+        <a href="{{ url_for('dashboard.recruiter_dashboard') }}"
+            style="color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 0.5rem;">&larr;
+            Back to Dashboard</a>
+        <h2>Applicants for: {{ job.title }}</h2>
+    </div>
+</div>
+
+{% if error %}
+<div
+    style="background-color: #fee2e2; color: #991b1b; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 2rem;">
+    {{ error }}
+</div>
+{% endif %}
+
+<div class="card" style="padding: 0; overflow: hidden;">
+    {% if applications %}
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="background-color: var(--background); border-bottom: 1px solid var(--border);">
+                    <th style="padding: 1rem; font-weight: 600; color: var(--text-secondary);">Applicant Name</th>
+                    <th style="padding: 1rem; font-weight: 600; color: var(--text-secondary);">Email</th>
+                    <th style="padding: 1rem; font-weight: 600; color: var(--text-secondary);">Applied Date</th>
+                    <th style="padding: 1rem; font-weight: 600; color: var(--text-secondary);">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for applicant in applications %}
+                <tr style="border-bottom: 1px solid var(--border); background-color: white;">
+                    <td style="padding: 1rem; font-weight: 500;">
+                        {{ applicant.fullname }}
+                    </td>
+                    <td style="padding: 1rem; color: var(--text-secondary);">
+                        {{ applicant.email }}
+                    </td>
+                    <td style="padding: 1rem; color: var(--text-secondary);">
+                        {{ applicant.applied_at.strftime('%Y-%m-%d %H:%M') if applicant.applied_at else 'N/A' }}
+                    </td>
+                    <td style="padding: 1rem;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            {% if applicant.resume_filename %}
+                            <button class="btn btn-sm"
+                                style="background-color: var(--surface); border: 1px solid var(--text-secondary); color: var(--text-secondary); padding: 0.25rem 0.5rem; font-size: 0.8rem;"
+                                onclick="viewResume('{{ applicant.fullname }}', '{{ url_for('uploaded_file', filename=applicant.resume_filename) }}')">
+                                View Resume
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-sm"
+                                style="background-color: var(--surface); border: 1px solid var(--primary); color: var(--primary); padding: 0.25rem 0.5rem; font-size: 0.8rem;"
+                                onclick="viewSkills('{{ applicant.fullname }}', '{{ applicant.detected_skills if applicant.detected_skills else '' }}')">
+                                View Skills
+                            </button>
+                            <span
+                                style="color: var(--text-secondary); font-size: 0.8rem; background-color: var(--background); padding: 0.25rem 0.5rem; border-radius: 4px;">Status:
+                                {{ applicant.status }}</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem;">
+        <p style="font-size: 1.25rem; color: var(--text-secondary);">No one has applied to this job yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Skills Modal -->
+<div id="skillsModal"
+    style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center;">
+    <div class="card" style="width: 100%; max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3>Skills Found in Resume</h3>
+            <button onclick="closeSkillsModal()"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <div>
+            <p><strong>Candidate:</strong> <span id="modalCandidateName"></span></p>
+            <div style="margin-top: 1rem;">
+                <strong>Detected Match:</strong>
+                <div id="modalSkillsList"
+                    style="margin-top: 0.5rem; padding: 1rem; background-color: var(--background); border-radius: var(--radius-md); font-family: monospace; line-height: 1.5;">
+                    <!-- Skills will be injected here -->
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-primary btn-block" style="margin-top: 1.5rem;"
+            onclick="closeSkillsModal()">Close</button>
+    </div>
+</div>
+
+<!-- Resume Modal -->
+<div id="resumeModal"
+    style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center;">
+    <div class="card" style="width: 100%; max-width: 800px; height: 85vh; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3>Resume: <span id="modalResumeCandidateName"></span></h3>
+            <button onclick="closeResumeModal()"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <div style="flex-grow: 1; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+            <iframe id="resumeIframe" style="width: 100%; height: 100%; border: none;"></iframe>
+            <div id="resumeHtmlContainer"
+                style="width: 100%; height: 100%; padding: 2rem; overflow-y: auto; background-color: white; display: none;">
+            </div>
+        </div>
+        <div style="margin-top: 1rem; text-align: right;">
+            <button class="btn btn-primary" onclick="closeResumeModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+<script>
+    function viewResume(name, url) {
+        document.getElementById('modalResumeCandidateName').textContent = name;
+        document.getElementById('resumeModal').style.display = 'flex';
+
+        const iframe = document.getElementById('resumeIframe');
+        const htmlContainer = document.getElementById('resumeHtmlContainer');
+
+        // Check file extension
+        const isWordDoc = url.toLowerCase().endsWith('.docx') || url.toLowerCase().endsWith('.doc');
+
+        if (isWordDoc) {
+            // Hide iframe, show html container
+            iframe.style.display = 'none';
+            htmlContainer.style.display = 'block';
+            htmlContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%;"><div class="spinner" style="border: 4px solid rgba(0,0,0,0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--primary); animation: spin 1s linear infinite;"></div></div>';
+
+            // Use Mammoth.js to convert Word to HTML
+            fetch(url)
+                .then(response => response.arrayBuffer())
+                .then(arrayBuffer => mammoth.convertToHtml({ arrayBuffer: arrayBuffer }))
+                .then(result => {
+                    htmlContainer.innerHTML = result.value;
+                })
+                .catch(err => {
+                    console.error('Error rendering word document:', err);
+                    htmlContainer.innerHTML = '<div style="color: #991b1b; padding: 1rem;">Error rendering document. It may be an older .doc format not fully supported by the browser previewer. <a href="' + url + '" download>Click here to download it instead.</a></div>';
+                });
+        } else {
+            // It's a PDF (or other native browser format)
+            htmlContainer.style.display = 'none';
+            iframe.style.display = 'block';
+            iframe.src = url;
+        }
+    }
+
+    function closeResumeModal() {
+        document.getElementById('resumeModal').style.display = 'none';
+        document.getElementById('resumeIframe').src = '';
+        document.getElementById('resumeHtmlContainer').innerHTML = '';
+    }
+
+    function viewSkills(name, skillsStr) {
+        document.getElementById('modalCandidateName').textContent = name;
+
+        const skillsContainer = document.getElementById('modalSkillsList');
+        if (skillsStr && skillsStr.trim() !== '') {
+            // Split by comma and create beautiful tags
+            const skills = skillsStr.split(',').map(s => s.trim());
+            skillsContainer.innerHTML = '';
+            skillsContainer.style.display = 'flex';
+            skillsContainer.style.flexWrap = 'wrap';
+            skillsContainer.style.gap = '0.5rem';
+
+            skills.forEach(skill => {
+                const badge = document.createElement('span');
+                badge.textContent = skill;
+                badge.style.backgroundColor = 'var(--primary)';
+                badge.style.color = 'white';
+                badge.style.padding = '0.25rem 0.75rem';
+                badge.style.borderRadius = '999px';
+                badge.style.fontSize = '0.875rem';
+                skillsContainer.appendChild(badge);
+            });
+        } else {
+            skillsContainer.style.display = 'block';
+            skillsContainer.innerHTML = '<span style="color: var(--text-secondary); font-style: italic;">No exact skill matches were detected. Please click "View Resume" to manually review the applicant\'s full qualifications.</span>';
+        }
+
+        document.getElementById('skillsModal').style.display = 'flex';
+    }
+
+    function closeSkillsModal() {
+        document.getElementById('skillsModal').style.display = 'none';
+    }
+</script>
+{% endblock %}

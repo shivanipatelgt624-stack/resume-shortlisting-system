@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Recruiter Dashboard | Resume Shortlisting System{% endblock %}
+
+{% block content %}
+<div class="dashboard-header"
+    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Recruiter Dashboard</h2>
+    <button class="btn btn-primary" onclick="openJobModal()">+ Post a New Job</button>
+</div>
+
+{% if error %}
+<div
+    style="background-color: #fee2e2; color: #991b1b; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 2rem;">
+    {{ error }}
+</div>
+{% endif %}
+
+<div class="jobs-list">
+    {% if jobs %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        {% for job in jobs %}
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <h3>{{ job.title }}</h3>
+                <span
+                    style="background-color: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold;">
+                    {{ job.applicant_count }} Applicants
+                </span>
+            </div>
+            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">Posted: {{
+                job.created_at.strftime('%Y-%m-%d') if job.created_at else 'N/A' }}</p>
+            <div style="margin-bottom: 0.5rem;"><strong>Experience:</strong> {{ job.min_experience }} years</div>
+            <div style="margin-bottom: 1rem;"><strong>Skills:</strong> {{ job.skills }}</div>
+            <p
+                style="margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                {{ job.description }}</p>
+            <a href="{{ url_for('dashboard.job_applications', job_id=job.id) }}" class="btn btn-block"
+                style="background-color: var(--surface); border: 1px solid var(--border); text-align: center; text-decoration: none; display: inline-block;">View
+                Applications</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card" style="text-align: center; padding: 3rem;">
+        <p style="font-size: 1.25rem; color: var(--text-secondary);">You haven't posted any jobs yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Job Modal -->
+<div id="jobModal"
+    style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center;">
+    <div class="card" style="width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3>Post a New Job</h3>
+            <button onclick="closeJobModal()"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+
+        <form id="create-job-form">
+            <div class="form-group">
+                <label class="form-label" for="title">Job Title</label>
+                <input type="text" id="title" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="description">Job Description</label>
+                <textarea id="description" class="form-control" rows="4" required></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="skills">Required Skills (comma separated)</label>
+                <input type="text" id="skills" class="form-control" placeholder="Python, SQL, AWS" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="min_experience">Minimum Experience (Years)</label>
+                <input type="number" id="min_experience" class="form-control" min="0" value="0" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Create Job</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openJobModal() {
+        const modal = document.getElementById('jobModal');
+        modal.style.display = 'flex';
+    }
+
+    function closeJobModal() {
+        const modal = document.getElementById('jobModal');
+        modal.style.display = 'none';
+        document.getElementById('create-job-form').reset();
+    }
+
+    document.getElementById('create-job-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating...';
+
+        const payload = {
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            skills: document.getElementById('skills').value,
+            min_experience: parseInt(document.getElementById('min_experience').value)
+        };
+
+        try {
+            const response = await fetch('/api/jobs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert(data.error || 'Failed to create job');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Job';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An unexpected error occurred.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Job';
+        }
+    });
+</script>
+{% endblock %}
