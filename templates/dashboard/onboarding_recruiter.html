@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome to the Workspace | AutoShortlist{% endblock %}
+
+{% block content %}
+<div style="max-width: 650px; margin: 4rem auto; padding: 2rem;">
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <span style="font-size: 4rem;">🚀</span>
+        <h1 style="font-weight: 800; font-size: 2.5rem; margin-top: 1.5rem; background: linear-gradient(135deg, #4f46e5, #7c3aed); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Build Your Recruiter Workspace</h1>
+        <p style="color: var(--text-secondary); font-size: 1.1rem; margin-top: 0.75rem;">Complete your company profile to start posting jobs and hiring top talent.</p>
+    </div>
+
+    <form id="onboarding-recruiter-form" class="card" style="padding: 2.5rem; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <div style="margin-bottom: 2rem;">
+            <div style="width: 100px; height: 100px; border-radius: 24px; background: #f8fafc; border: 2px dashed #cbd5e1; margin: 0 auto 1.5rem auto; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; position: relative;" onclick="document.getElementById('company-logo-input').click()">
+                <div id="logo-preview-text" style="text-align: center; color: #94a3b8; font-size: 0.8rem; font-weight: 600;">
+                    UPOLOAD<br>LOGO
+                </div>
+                <img id="logo-preview-img" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                <input type="file" id="company-logo-input" name="logo" accept="image/*" style="display: none;" onchange="previewLogo(this)">
+            </div>
+            <p style="text-align: center; font-size: 0.85rem; color: #64748b;">Company Branding (Square format recommended)</p>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="company_name">Company Name <span style="color: #ef4444;">*</span></label>
+            <input type="text" id="company_name" name="company_name" class="form-control" placeholder="e.g. Acme Tech Solutions" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div class="form-group">
+                <label class="form-label" for="industry">Industry</label>
+                <input type="text" id="industry" name="industry" class="form-control" placeholder="e.g. Information Technology">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="website">Website</label>
+                <input type="url" id="website" name="website" class="form-control" placeholder="https://acme.inc">
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 2.5rem;">
+            <label class="form-label" for="description">Company Bio</label>
+            <textarea id="description" name="description" class="form-control" rows="4" placeholder="Briefly describe your company culture and mission..."></textarea>
+        </div>
+
+        <button type="submit" id="submit-btn" style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 1.1rem; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4); transition: transform 0.2s;">
+            Set Up Workspace 🚀
+        </button>
+    </form>
+</div>
+
+<script>
+function previewLogo(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('logo-preview-img').src = e.target.result;
+            document.getElementById('logo-preview-img').style.display = 'block';
+            document.getElementById('logo-preview-text').style.display = 'none';
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+document.getElementById('onboarding-recruiter-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = "Setting up...";
+
+    const formData = new FormData(e.target);
+    
+    try {
+        const res = await fetch('/api/recruiter/onboarding', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+            window.location.href = '/recruiter/dashboard?onboarding_success=true';
+        } else {
+            alert(data.error || "Failed to save profile.");
+            btn.disabled = false;
+            btn.textContent = "Set Up Workspace 🚀";
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Unexpected error occurred.");
+        btn.disabled = false;
+        btn.textContent = "Set Up Workspace 🚀";
+    }
+});
+</script>
+{% endblock %}

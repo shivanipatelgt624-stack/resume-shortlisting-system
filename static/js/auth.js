@@ -1,6 +1,23 @@
-import { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from './firebase-config.js';
+import { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, googleProvider, signInWithPopup } from './firebase-config.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+
+    // Helper: Finalize session with Flask backend after any Firebase login
+    async function finalizeSession(user) {
+        const idToken = await user.getIdToken();
+        const response = await fetch('/api/auth/sessionLogin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            window.location.href = data.redirect || '/';
+        } else {
+            alert(data.error || 'Failed to login to server');
+            auth.signOut();
+        }
+    }
 
     // Login Form Handler
     const loginForm = document.getElementById('login-form');
@@ -15,34 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = document.getElementById('password').value;
 
             try {
-                // 1. Authenticate with Firebase
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-
-                // 2. Get ID Token
-                const idToken = await user.getIdToken();
-
-                // 3. Send token to our Flask backend to establish session
-                const response = await fetch('/api/auth/sessionLogin', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ idToken })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    window.location.href = data.redirect || '/';
-                } else {
-                    alert(data.error || 'Failed to login to server');
-                    auth.signOut(); // Revert Firebase auth if server fails
-                }
+                await finalizeSession(userCredential.user);
             } catch (error) {
                 console.error("Login error:", error);
-
-                // Specifically check for wrong email or password
                 if (error.code === 'auth/invalid-credential' ||
                     error.code === 'auth/wrong-password' ||
                     error.code === 'auth/user-not-found') {
@@ -55,6 +48,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitBtn.textContent = 'Log In';
             }
         });
+
+        // Google Login Handler
+        const googleLoginBtn = document.getElementById('google-login');
+        if (googleLoginBtn) {
+            googleLoginBtn.addEventListener('click', async () => {
+                try {
+                    const result = await signInWithPopup(auth, googleProvider);
+                    await finalizeSession(result.user);
+                } catch (error) {
+                    console.error("Google Login error:", error);
+                    alert("Google login failed: " + error.message);
+                }
+            });
+        }
     }
 
     // Register Form Handler
@@ -72,16 +79,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const role = document.getElementById('role').value;
 
             try {
-                // 1. Create user in Firebase
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // 2. Send metadata to our Flask backend
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         uid: user.uid,
                         email: user.email,
@@ -91,12 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 const data = await response.json();
-
                 if (response.ok) {
                     window.location.href = data.redirect || '/';
                 } else {
                     alert(data.error || 'Registration failed on server');
-                    auth.currentUser.delete(); // Rollback Firebase user if backend fails
+                    auth.currentUser.delete();
                 }
             } catch (error) {
                 console.error("Registration error:", error);
@@ -106,5 +108,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitBtn.textContent = 'Sign Up';
             }
         });
+
+        // Google Register Handler
+        const googleRegisterBtn = document.getElementById('google-register');
+        if (googleRegisterBtn) {
+            googleRegisterBtn.addEventListener('click', async () => {
+                const role = document.getElementById('role').value;
+                if (!role) {
+                    alert("Please select your role first!");
+                    return;
+                }
+
+                try {
+                    const result = await signInWithPopup(auth, googleProvider);
+                    const user = result.user;
+
+                    const response = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            uid: user.uid,
+                            email: user.email,
+                            fullname: user.displayName || "Google User",
+                            role: role,
+                            profile_pic: user.photoURL
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                        window.location.href = data.redirect || '/';
+                    } else if (response.status === 409) {
+                        // User already exists, try logging them in
+                        await finalizeSession(user);
+                    } else {
+                        alert(data.error || 'Registration failed on server');
+                    }
+                } catch (error) {
+                    console.error("Google Register error:", error);
+                    alert("Google registration failed: " + error.message);
+                }
+            });
+        }
     }
 });

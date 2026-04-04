@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Apply for {{ job.title }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('dashboard.seeker_dashboard') }}" style="color:var(--text-secondary);text-decoration:none;font-size:0.9rem;">&larr; Back to Dashboard</a>
+</div>
+
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <h2 style="margin: 0 0 0.5rem 0;">Submit Application</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 0.95rem;">
+        You're applying for the position of <strong>{{ job.title }}</strong>. Please complete the following questions and upload your resume.
+    </p>
+
+    <div id="error-message" style="display: none; background-color: #fee2e2; color: #991b1b; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.9rem;"></div>
+
+    <form id="apply-job-form" onsubmit="submitApplication(event)">
+        <input type="hidden" id="job_id" value="{{ job.id }}">
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label for="interest_reason" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem;">
+                How interested are you about this job/role? <span style="color:#dc2626">*</span>
+            </label>
+            <textarea id="interest_reason" name="interest_reason" required
+                style="width: 100%; box-sizing: border-box; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-family: inherit; font-size: 0.95rem; resize: vertical; min-height: 80px;"
+                placeholder="E.g., I have been following your company for a while..."></textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label for="availability" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem;">
+                How immediately are you available for joining? <span style="color:#dc2626">*</span>
+            </label>
+            <textarea id="availability" name="availability" required
+                style="width: 100%; box-sizing: border-box; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-family: inherit; font-size: 0.95rem; resize: vertical; min-height: 80px;"
+                placeholder="E.g., I am available to join within 2 weeks..."></textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label for="introduction" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem;">
+                Briefly give a short introduction about yourself <span style="color:#dc2626">*</span>
+            </label>
+            <textarea id="introduction" name="introduction" required
+                style="width: 100%; box-sizing: border-box; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-family: inherit; font-size: 0.95rem; resize: vertical; min-height: 120px;"
+                placeholder="Summarize your professional background and core skills..."></textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 2rem;">
+            <label for="resume" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem;">
+                Upload Resume <span style="color:#dc2626">*</span>
+            </label>
+            <input type="file" id="resume" name="resume" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" required
+                style="width: 100%; box-sizing: border-box; padding: 0.5rem; border: 1px dashed #9ca3af; border-radius: var(--radius-md); font-family: inherit; font-size: 0.95rem; background: var(--background);">
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">
+                Supported formats: PDF, DOCX, PNG, JPG (Images will be automatically scanned)
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: center; justify-content: flex-end;">
+            <a href="{{ url_for('dashboard.seeker_dashboard') }}" style="color: var(--text-secondary); text-decoration: none; font-size: 0.95rem;">Cancel</a>
+            <button type="submit" class="btn btn-primary" id="submit-btn" style="padding: 0.75rem 2rem; font-size: 1rem;">
+                Submit Application
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Success Overlay Overlay (Hidden by default) -->
+<div id="success-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; flex-direction: column;">
+    <div style="background: white; padding: 3rem; border-radius: 12px; text-align: center; max-width: 400px;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">✅</div>
+        <h2 style="margin: 0 0 1rem 0; color: var(--text);">Application Submitted!</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Your application and resume have been successfully processed.</p>
+        <button onclick="window.location.href='/seeker/dashboard'" class="btn btn-primary" style="width: 100%;">Return to Dashboard</button>
+    </div>
+</div>
+
+<script>
+    async function submitApplication(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submit-btn');
+        const errorDiv = document.getElementById('error-message');
+        const jobId = document.getElementById('job_id').value;
+        const fileInput = document.getElementById('resume');
+        
+        errorDiv.style.display = 'none';
+
+        if (fileInput.files.length === 0) {
+            errorDiv.textContent = 'Please select a resume file.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Processing & Submitting... (This may take a moment)';
+
+        const formData = new FormData(e.target);
+        
+        try {
+            const response = await fetch(`/api/apply/${jobId}`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            
+            if (response.ok) {
+                document.getElementById('success-overlay').style.display = 'flex';
+            } else {
+                errorDiv.textContent = data.error || 'Failed to submit application';
+                errorDiv.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Submit Application';
+            }
+        } catch (error) {
+            errorDiv.textContent = 'An unexpected error occurred.';
+            errorDiv.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Submit Application';
+        }
+    }
+</script>
+{% endblock %}

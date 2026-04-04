@@ -26,3 +26,9 @@ uploads/
 # IDE files
 .vscode/
 .idea/
+ 
+# Temporary/Utility Scripts
+tmp_*.py
+inject_*.py
+update_schema_*.py
+main

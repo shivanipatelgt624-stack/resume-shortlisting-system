@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Skills Overview — {{ job.title }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('dashboard.recruiter_dashboard') }}" style="color:var(--text-secondary);text-decoration:none;font-size:0.9rem;">&larr; Dashboard</a>
+    <span style="color:var(--text-secondary);margin:0 0.4rem;">/</span>
+    <a href="{{ url_for('dashboard.job_detail', job_id=job.id) }}" style="color:var(--text-secondary);text-decoration:none;font-size:0.9rem;">{{ job.title }}</a>
+    <span style="color:var(--text-secondary);margin:0 0.4rem;">/</span>
+    <span style="color:var(--text);font-size:0.9rem;">Skills Overview</span>
+</div>
+
+{% if error %}
+<div style="background:#fee2e2;color:#991b1b;padding:1rem;border-radius:var(--radius-md);margin-bottom:2rem;">{{ error }}</div>
+{% endif %}
+
+<!-- ==================== TOP 2 BEST CANDIDATES ==================== -->
+{% if applicants|length > 0 %}
+<div style="margin-bottom:2rem;">
+    <h2 style="margin:0 0 0.25rem 0;">🏆 Top Recommended Candidates</h2>
+    <p style="color:var(--text-secondary);margin:0 0 1.25rem 0;">AI-ranked by overall fit score for <strong>{{ job.title }}</strong></p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.25rem;">
+    {% for applicant in applicants[:3] %}
+    <div class="card" style="border:2px solid {% if loop.index == 1 %}#f59e0b{% elif loop.index == 2 %}#6366f1{% else %}#cd7f32{% endif %};position:relative;overflow:hidden;">
+        <!-- Rank ribbon -->
+        <div style="position:absolute;top:0;left:0;background:{% if loop.index == 1 %}#f59e0b{% elif loop.index == 2 %}#6366f1{% else %}#cd7f32{% endif %};color:white;padding:0.2rem 0.9rem;font-size:0.75rem;font-weight:700;border-radius:0 0 8px 0;">
+            {% if loop.index == 1 %}🥇 BEST MATCH{% elif loop.index == 2 %}🥈 2ND BEST{% else %}🥉 3RD BEST{% endif %}
+        </div>
+
+        <div style="display:flex;align-items:center;gap:1rem;margin-top:1.5rem;margin-bottom:1rem;">
+            <div style="background:{% if loop.index == 1 %}#f59e0b{% elif loop.index == 2 %}#6366f1{% else %}#cd7f32{% endif %};color:white;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:bold;flex-shrink:0;">
+                {{ applicant.fullname[0].upper() }}
+            </div>
+            <div>
+                <p style="margin:0;font-weight:700;font-size:1.05rem;">{{ applicant.fullname }}</p>
+                <p style="margin:0;font-size:0.82rem;color:var(--text-secondary);">{{ applicant.email }}</p>
+            </div>
+        </div>
+
+        <!-- Score circle -->
+        <div style="text-align:center;margin-bottom:1rem;">
+            <div style="display:inline-flex;flex-direction:column;align-items:center;background:var(--background);border-radius:50%;width:80px;height:80px;justify-content:center;">
+                <span style="font-size:1.6rem;font-weight:bold;color:{% if loop.index == 1 %}#f59e0b{% elif loop.index == 2 %}#6366f1{% else %}#cd7f32{% endif %};">{{ applicant.final_score or '—' }}{% if applicant.final_score %}<span style="font-size:0.8rem">%</span>{% endif %}</span>
+                <span style="font-size:0.65rem;color:var(--text-secondary);">match</span>
+            </div>
+        </div>
+
+        <!-- Sub-scores -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:1rem;text-align:center;">
+            <div style="background:var(--background);padding:0.5rem;border-radius:6px;">
+                <p style="margin:0;font-size:0.75rem;color:var(--text-secondary);">Skills</p>
+                <p style="margin:0;font-weight:700;">{{ applicant.skill_score or '—' }}{% if applicant.skill_score %}<span style="font-size:0.7rem">%</span>{% endif %}</p>
+            </div>
+            <div style="background:var(--background);padding:0.5rem;border-radius:6px;">
+                <p style="margin:0;font-size:0.75rem;color:var(--text-secondary);">Experience</p>
+                <p style="margin:0;font-weight:700;">{{ applicant.experience_score or '—' }}{% if applicant.experience_score %}<span style="font-size:0.7rem">%</span>{% endif %}</p>
+            </div>
+        </div>
+
+        <!-- Detected skills tags -->
+        {% if applicant.detected_skills %}
+        <div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-bottom:0.75rem;">
+            {% for skill in applicant.detected_skills.split(',') %}
+            {% set s = skill.strip().lower() %}
+            <span style="padding:0.2rem 0.6rem;border-radius:999px;font-size:0.75rem;
+                {% if s in required_skills %}background:#dcfce7;color:#166534;border:1px solid #86efac;
+                {% else %}background:var(--background);color:var(--text-secondary);border:1px solid var(--border);{% endif %}">
+                {{ skill.strip() }}
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- AI Feedback snippet -->
+        {% if applicant.ai_feedback %}
+        <p style="font-size:0.82rem;color:var(--text-secondary);border-left:3px solid {% if loop.index == 1 %}#f59e0b{% elif loop.index == 2 %}#6366f1{% else %}#cd7f32{% endif %};padding-left:0.75rem;margin:0;line-height:1.6;">
+            {{ applicant.ai_feedback[:260] }}{% if applicant.ai_feedback|length > 260 %}…{% endif %}
+        </p>
+        {% endif %}
+
+        <div style="margin-top:1rem;">
+            <a href="{{ url_for('dashboard.applicant_detail', job_id=job.id, app_id=applicant.id) }}"
+                style="display:block;text-align:center;padding:0.6rem;background:{% if loop.index == 1 %}#f59e0b{% elif loop.index == 2 %}#6366f1{% else %}#cd7f32{% endif %};color:white;border-radius:var(--radius-md);text-decoration:none;font-weight:600;font-size:0.9rem;">
+                View Full Evaluation →
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+</div>
+
+<!-- ==================== ALL CANDIDATES TABLE ==================== -->
+<div>
+    <h2 style="margin:0 0 0.25rem 0;">📋 All Candidates Comparison</h2>
+    <p style="color:var(--text-secondary);margin:0 0 1.25rem 0;">Ranked by AI match score. Green skills are matched to job requirements.</p>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;text-align:left;min-width:700px;">
+                <thead>
+                    <tr style="background:var(--background);border-bottom:2px solid var(--border);">
+                        <th style="padding:0.9rem 1rem;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">#</th>
+                        <th style="padding:0.9rem 1rem;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Candidate</th>
+                        <th style="padding:0.9rem 1rem;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Overall</th>
+                        <th style="padding:0.9rem 1rem;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Skills %</th>
+                        <th style="padding:0.9rem 1rem;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Exp %</th>
+                        <th style="padding:0.9rem 1rem;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Matched Skills</th>
+                        <th style="padding:0.9rem 1rem;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for applicant in applicants %}
+                    <tr style="border-bottom:1px solid var(--border);{% if loop.index <= 3 %}background:#fffbeb;{% endif %}">
+                        <td style="padding:0.9rem 1rem;font-weight:700;color:var(--text-secondary);">
+                            {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
+                        </td>
+                        <td style="padding:0.9rem 1rem;">
+                            <p style="margin:0;font-weight:600;">{{ applicant.fullname }}</p>
+                            <p style="margin:0;font-size:0.8rem;color:var(--text-secondary);">{{ applicant.email }}</p>
+                        </td>
+                        <td style="padding:0.9rem 1rem;">
+                            {% if applicant.final_score %}
+                                {% set s = applicant.final_score %}
+                                <span style="font-weight:bold;font-size:1rem;
+                                    color:{% if s >= 85 %}#166534{% elif s >= 60 %}#854d0e{% else %}#991b1b{% endif %};">
+                                    {{ s }}%
+                                </span>
+                            {% else %}<span style="color:var(--text-secondary);font-size:0.85rem;">Pending</span>{% endif %}
+                        </td>
+                        <td style="padding:0.9rem 1rem;color:var(--text-secondary);">{{ applicant.skill_score or '—' }}{% if applicant.skill_score %}%{% endif %}</td>
+                        <td style="padding:0.9rem 1rem;color:var(--text-secondary);">{{ applicant.experience_score or '—' }}{% if applicant.experience_score %}%{% endif %}</td>
+                        <td style="padding:0.9rem 1rem;">
+                            {% if applicant.detected_skills %}
+                            <div style="display:flex;flex-wrap:wrap;gap:0.3rem;max-width:320px;">
+                                {% for skill in applicant.detected_skills.split(',') %}
+                                {% set sk = skill.strip().lower() %}
+                                <span style="padding:0.15rem 0.55rem;border-radius:999px;font-size:0.72rem;
+                                    {% if sk in required_skills %}background:#dcfce7;color:#166534;{% else %}background:var(--surface);color:var(--text-secondary);border:1px solid var(--border);{% endif %}">
+                                    {{ skill.strip() }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span style="color:var(--text-secondary);font-style:italic;font-size:0.8rem;">None extracted</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding:0.9rem 1rem;">
+                            <a href="{{ url_for('dashboard.applicant_detail', job_id=job.id, app_id=applicant.id) }}"
+                                style="color:var(--primary);text-decoration:none;font-size:0.85rem;white-space:nowrap;">View →</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:3rem;">
+    <p style="font-size:1.2rem;color:var(--text-secondary);">No applicants yet for this job.</p>
+</div>
+{% endif %}
+{% endblock %}

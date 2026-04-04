@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile | AutoShortlist{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto; padding-bottom: 3rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h2>My Profile</h2>
+            <p style="color: var(--text-secondary);">Manage your complete job seeker profile here.</p>
+        </div>
+        <button id="save-profile-btn" class="btn btn-primary" onclick="saveProfile()" style="min-width: 120px;">Save Profile</button>
+    </div>
+
+    <!-- 1. Personal Details -->
+    <div class="card" style="margin-bottom: 1.5rem; padding: 2rem;">
+        <h3 style="margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);">1. Personal Details</h3>
+        
+        <div style="display: flex; gap: 2rem;">
+            <div style="text-align: center; width: 140px;">
+                <div id="profile-pic-container" style="width: 120px; height: 120px; border-radius: 50%; background-color: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; font-weight: bold; margin: 0 auto 1rem auto; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; position: relative;">
+                    {% if session.get('profile_pic') %}
+                        <img src="{{ session.get('profile_pic') }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                        {{ session.get('fullname', 'U')[0].upper() }}
+                    {% endif %}
+                </div>
+                
+                <input type="file" id="photo-upload-input" accept="image/*" style="display: none;" onchange="uploadProfilePhoto(this)">
+                <button onclick="document.getElementById('photo-upload-input').click()" id="upload-photo-btn" style="background: none; border: 1px solid var(--primary); color: var(--primary); font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); padding: 0.4rem 0.8rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--primary)'; this.style.color='white'" onmouseout="this.style.background='none'; this.style.color='var(--primary)'">
+                    Update Picture
+                </button>
+            </div>
+            
+            <div style="flex: 1;">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" class="form-control" value="{{ session.get('fullname', '') }}" disabled style="background-color: var(--background);">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" class="form-control" value="{{ session.get('email', '') }}" disabled style="background-color: var(--background);">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="input-phone" class="form-control" placeholder="e.g. +1 234 567 890" value="{{ session.get('phone', '') }}">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Educational Details -->
+    <div class="card" style="margin-bottom: 1.5rem; padding: 2rem;">
+        <h3 style="margin-bottom: 0.5rem; padding-bottom: 0; border-bottom: none;">2. Educational Details</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.9rem;">Please enter your complete education details starting from the highest degree (e.g. PG &rarr; UG &rarr; 12th &rarr; 10th).</p>
+        
+        <div id="education-list-container">
+            <div id="education-entries">
+                <!-- Javascript will populate entries here -->
+            </div>
+            <button class="btn btn-secondary" onclick="addEducationRow()" style="margin-top: 1rem;">+ Add Education</button>
+        </div>
+    </div>
+
+    <!-- 3. Experience Type -->
+    <div class="card" style="margin-bottom: 1.5rem; padding: 2rem;">
+        <h3 style="margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);">3. Experience Type</h3>
+        
+        <div class="form-group" style="max-width: 300px; margin-bottom: 1.5rem;">
+            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Select Experience Type</label>
+            <select id="experience_type_select" class="form-control" onchange="toggleExperienceView()">
+                <option value="Fresher" {% if not profile or profile.experience_type == 'Fresher' or not profile.experience_type %}selected{% endif %}>Fresher</option>
+                <option value="Intern" {% if profile and profile.experience_type == 'Intern' %}selected{% endif %}>Intern</option>
+                <option value="Experienced" {% if profile and profile.experience_type == 'Experienced' %}selected{% endif %}>Experienced</option>
+            </select>
+        </div>
+
+        <!-- Fresher Message -->
+        <div id="fresher-message" style="display:none; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 1.2rem 1.5rem; color: #15803d; font-weight: 500;">
+            🎓 Great! Freshers are welcome. No prior experience required.
+        </div>
+
+        <!-- Intern / Experienced Entry List -->
+        <div id="experience-list-container" style="display: none;">
+            <div id="experience-entries">
+                <!-- Javascript will populate entries here -->
+            </div>
+            <button class="btn btn-secondary" onclick="addExperienceRow()" style="margin-top: 1rem;">+ Add Experience</button>
+        </div>
+    </div>
+
+    <!-- 4. Skills -->
+    <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);">4. Skills</h3>
+        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">Type a skill and press <strong>Enter</strong> or <strong>comma</strong> to add it. Then set your proficiency level.</p>
+        
+        <div id="skills-badges-container" style="display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 0.75rem; min-height: 36px;">
+            <!-- Skill badges with level dropdowns go here -->
+        </div>
+        <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.4rem 0.75rem; background: white; display: flex; align-items: center;">
+            <input type="text" id="skill-input" style="border: none; outline: none; flex: 1; font-family: inherit; font-size: 0.95rem; padding: 0.25rem;" placeholder="e.g. Python, React, SQL...">
+        </div>
+    </div>
+
+    <!-- Bottom Save Action -->
+    <div style="text-align: right; padding-top: 1rem; border-top: 1px solid var(--border);">
+        <button id="save-profile-btn-bottom" class="btn btn-primary" onclick="saveProfile()" style="min-width: 150px; padding: 0.8rem 1.5rem; font-size: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">Save All Changes</button>
+    </div>
+
+</div>
+
+<!-- Data injection for JavaScript -->
+<script>
+    // Load Server Data
+    const serverExperienceData = {{ (profile.experience_details | tojson if profile and profile.experience_details else '[]') | safe }};
+    const serverEducationData = {{ (profile.education_details | tojson if profile and profile.education_details else '[]') | safe }};
+    const serverSkillsData = {{ (profile.skills | tojson if profile and profile.skills else '[]') | safe }};
+</script>
+
+<script>
+    // --- Education Logic ---
+    let educations = [];
+
+    function addEducationRow(level = '', college = '', cgpa = '', passed_year = '') {
+        const idx = educations.length;
+        educations.push({ level, college, cgpa, passed_year });
+        renderEducations();
+    }
+
+    function removeEducationRow(index) {
+        educations.splice(index, 1);
+        renderEducations();
+    }
+
+    function updateEdu(index, field, value) {
+        if(educations[index]) {
+            educations[index][field] = value;
+        }
+    }
+
+    function renderEducations() {
+        const parent = document.getElementById('education-entries');
+        parent.innerHTML = '';
+        educations.forEach((edu, i) => {
+            const div = document.createElement('div');
+            div.style.cssText = "background: var(--surface); border: 1px solid var(--border); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1rem; position: relative;";
+            div.innerHTML = `
+                <button onclick="removeEducationRow(${i})" style="position: absolute; top: 0.5rem; right: 0.5rem; background: #fee2e2; border: none; color: #dc2626; border-radius: 4px; padding: 0.3rem 0.6rem; cursor: pointer; font-size: 0.8rem; font-weight: 600;">Remove</button>
+                <div style="display: grid; grid-template-columns: 1fr 1.5fr 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">Education Level</label>
+                        <select class="form-control" style="padding: 0.5rem;" onchange="updateEdu(${i}, 'level', this.value)">
+                            <option value="">Select Level...</option>
+                            <option value="PG / Post Graduation" ${edu.level === 'PG / Post Graduation' ? 'selected' : ''}>PG / Post Graduation</option>
+                            <option value="UG / Bachelor's" ${edu.level === "UG / Bachelor's" ? 'selected' : ''}>UG / Bachelor's</option>
+                            <option value="12th / Diploma" ${edu.level === '12th / Diploma' ? 'selected' : ''}>12th / Diploma</option>
+                            <option value="10th / Secondary School" ${edu.level === '10th / Secondary School' ? 'selected' : ''}>10th / Secondary</option>
+                            <option value="PhD / Doctorate" ${edu.level === 'PhD / Doctorate' ? 'selected' : ''}>PhD / Doctorate</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">College / School Name</label>
+                        <input type="text" class="form-control" style="padding: 0.5rem;" placeholder="e.g. Stanford University" value="${edu.college}" onchange="updateEdu(${i}, 'college', this.value)">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">CGPA / Percentage</label>
+                        <input type="text" class="form-control" style="padding: 0.5rem;" placeholder="e.g. 8.5 / 85%" value="${edu.cgpa}" onchange="updateEdu(${i}, 'cgpa', this.value)">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">Passed Year</label>
+                        <input type="text" class="form-control" style="padding: 0.5rem;" placeholder="e.g. 2024" value="${edu.passed_year}" onchange="updateEdu(${i}, 'passed_year', this.value)">
+                    </div>
+                </div>
+            `;
+            parent.appendChild(div);
+        });
+    }
+
+    // --- Experience Logic ---
+    let experiences = [];
+    // Map index -> uploaded File object (not serialized to JSON)
+    const experienceCertFiles = {};
+
+    function toggleExperienceView() {
+        const type = document.getElementById('experience_type_select').value;
+        const container = document.getElementById('experience-list-container');
+        const fresherMsg = document.getElementById('fresher-message');
+        if (type === 'Fresher') {
+            container.style.display = 'none';
+            fresherMsg.style.display = 'block';
+        } else {
+            container.style.display = 'block';
+            fresherMsg.style.display = 'none';
+            if (experiences.length === 0) addExperienceRow();
+        }
+    }
+
+    function addExperienceRow(company = '', role = '', duration = '', cert_name = '') {
+        experiences.push({ company, role, duration, cert_name });
+        renderExperiences();
+    }
+
+    function removeExperienceRow(index) {
+        experiences.splice(index, 1);
+        delete experienceCertFiles[index];
+        renderExperiences();
+    }
+
+    function updateEx(index, field, value) {
+        if (experiences[index]) experiences[index][field] = value;
+    }
+
+    function handleCertUpload(index, input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            experienceCertFiles[index] = file;
+            experiences[index].cert_name = file.name;
+            // Update the label without full re-render
+            const label = document.getElementById(`cert-label-${index}`);
+            if (label) label.textContent = '📎 ' + file.name;
+        }
+    }
+
+    function renderExperiences() {
+        const parent = document.getElementById('experience-entries');
+        parent.innerHTML = '';
+        experiences.forEach((ex, i) => {
+            const div = document.createElement('div');
+            div.style.cssText = "background: var(--surface); border: 1px solid var(--border); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1rem; position: relative;";
+            const certDisplay = ex.cert_name ? '📎 ' + ex.cert_name : 'Upload Certificate (PDF/Image)';
+            div.innerHTML = `
+                <button onclick="removeExperienceRow(${i})" style="position: absolute; top: 0.5rem; right: 0.5rem; background: #fee2e2; border: none; color: #dc2626; border-radius: 4px; padding: 0.3rem 0.6rem; cursor: pointer; font-size: 0.8rem; font-weight: 600;">Remove</button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">Company Name</label>
+                        <input type="text" class="form-control" style="padding: 0.5rem;" placeholder="e.g. Google" value="${ex.company}" onchange="updateEx(${i}, 'company', this.value)">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">Job / Title / Role</label>
+                        <input type="text" class="form-control" style="padding: 0.5rem;" placeholder="e.g. Software Engineer" value="${ex.role}" onchange="updateEx(${i}, 'role', this.value)">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">Duration</label>
+                        <input type="text" class="form-control" style="padding: 0.5rem;" placeholder="e.g. Jun 2023 - Aug 2023" value="${ex.duration}" onchange="updateEx(${i}, 'duration', this.value)">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">Certificate</label>
+                        <input type="file" id="cert-input-${i}" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="handleCertUpload(${i}, this)">
+                        <button type="button" id="cert-label-${i}" onclick="document.getElementById('cert-input-${i}').click()" style="width:100%; padding: 0.5rem; border: 1px dashed var(--primary); border-radius: var(--radius-sm); background: var(--primary-light); color: var(--primary); font-size: 0.82rem; font-weight: 500; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${certDisplay}</button>
+                    </div>
+                </div>
+            `;
+            parent.appendChild(div);
+        });
+    }
+
+    // --- Skills Logic ---
+    // Each skill: { name: string, level: 'Beginner'|'Intermediate'|'Advanced' }
+    let skills = [];
+    const skillInput = document.getElementById('skill-input');
+    const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
+    const LEVEL_COLORS = {
+        'Beginner':     { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
+        'Intermediate': { bg: '#fefce8', color: '#b45309', border: '#fde68a' },
+        'Advanced':     { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' }
+    };
+
+    function renderSkills() {
+        const container = document.getElementById('skills-badges-container');
+        container.innerHTML = '';
+        skills.forEach((skill, index) => {
+            const lv = skill.level || 'Beginner';
+            const c = LEVEL_COLORS[lv];
+            const badge = document.createElement('div');
+            badge.style.cssText = `display:inline-flex; align-items:center; gap:0.4rem; background:${c.bg}; border:1px solid ${c.border}; border-radius: 20px; padding: 0.3rem 0.4rem 0.3rem 0.75rem; font-size:0.85rem; font-weight:500; color:${c.color};`;
+            const levelOptions = LEVELS.map(l =>
+                `<option value="${l}" ${l === lv ? 'selected' : ''}>${l}</option>`
+            ).join('');
+            badge.innerHTML = `
+                <span style="font-weight:600;">${skill.name}</span>
+                <select onchange="updateSkillLevel(${index}, this.value)" style="border:none; background:transparent; color:inherit; font-size:0.78rem; font-weight:600; cursor:pointer; outline:none; padding:0 2px;">
+                    ${levelOptions}
+                </select>
+                <span onclick="removeSkill(${index})" style="cursor:pointer; font-size:1rem; line-height:1; opacity:0.6; margin-left:2px;">&times;</span>
+            `;
+            container.appendChild(badge);
+        });
+    }
+
+    function updateSkillLevel(index, level) {
+        if (skills[index]) {
+            skills[index].level = level;
+            renderSkills(); // Re-render to update badge color
+        }
+    }
+
+    function removeSkill(i) {
+        skills.splice(i, 1);
+        renderSkills();
+    }
+
+    skillInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            const val = this.value.trim().replace(/,$/, '');
+            if (val && !skills.find(s => s.name.toLowerCase() === val.toLowerCase())) {
+                skills.push({ name: val, level: 'Beginner' });
+                this.value = '';
+                renderSkills();
+            }
+        }
+    });
+
+    // --- Init & Save ---
+    window.addEventListener('DOMContentLoaded', () => {
+        // Init data
+        if(Array.isArray(serverExperienceData)) {
+            experiences = serverExperienceData;
+        }
+        if(Array.isArray(serverEducationData)) {
+            educations = serverEducationData;
+        }
+        if(Array.isArray(serverSkillsData)) {
+            // Backward compat: old skills were plain strings, new format is {name, level}
+            skills = serverSkillsData.map(s =>
+                typeof s === 'string' ? { name: s, level: 'Beginner' } : s
+            );
+        }
+        
+        if (educations.length === 0) {
+            addEducationRow(); // Keep at least one blank
+        } else {
+            renderEducations();
+        }
+        
+        renderExperiences();
+        renderSkills();
+        toggleExperienceView(); // Run after DOM + data is ready
+    });
+
+    async function saveProfile() {
+        const btn = document.getElementById('save-profile-btn');
+        btn.textContent = "Saving...";
+        btn.disabled = true;
+
+        const payload = {
+            phone: document.getElementById('input-phone').value.trim(),
+            experience_type: document.getElementById('experience_type_select').value,
+            experience_details: experiences,
+            education_details: educations,
+            skills: skills
+        };
+
+        try {
+            const res = await fetch('/api/seeker/profile/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            if(res.ok) {
+                btn.textContent = "Saved ✓";
+                btn.style.backgroundColor = "#10b981";
+                
+                // Also update bottom button if it exists
+                const btnBottom = document.getElementById('save-profile-btn-bottom');
+                if(btnBottom) {
+                    btnBottom.textContent = "Saved ✓";
+                    btnBottom.style.backgroundColor = "#10b981";
+                }
+
+                setTimeout(() => {
+                    btn.textContent = "Save Profile";
+                    btn.style.backgroundColor = "var(--primary)";
+                    btn.disabled = false;
+                    
+                    if(btnBottom) {
+                        btnBottom.textContent = "Save All Changes";
+                        btnBottom.style.backgroundColor = "var(--primary)";
+                        btnBottom.disabled = false;
+                    }
+                }, 2000);
+            } else {
+                alert("Error: " + (data.error || "Failed to save profile."));
+                btn.textContent = "Save Profile";
+                btn.disabled = false;
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Network error.");
+            btn.textContent = "Save Profile";
+            btn.disabled = false;
+        }
+    }
+
+    async function uploadProfilePhoto(input) {
+        if (!input.files || input.files.length === 0) return;
+        
+        const file = input.files[0];
+        const formData = new FormData();
+        formData.append('photo', file);
+        
+        const btn = document.getElementById('upload-photo-btn');
+        const oldText = btn.textContent;
+        btn.textContent = "Uploading...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/profile/upload-photo', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (res.ok && data.photo_url) {
+                // Instantly update the DOM container
+                const container = document.getElementById('profile-pic-container');
+                container.innerHTML = `<img src="${data.photo_url}" style="width: 100%; height: 100%; object-fit: cover;">`;
+            } else {
+                alert("Upload failed: " + (data.error || "Unknown error"));
+            }
+        } catch (e) {
+            console.error("Upload error:", e);
+            alert("Network error during upload.");
+        } finally {
+            btn.textContent = oldText;
+            btn.disabled = false;
+            input.value = ''; // Reset file input
+        }
+    }
+</script>
+
+{% endblock %}

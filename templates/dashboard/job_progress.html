@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Application Progress | {{ job.title }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('dashboard.seeker_dashboard') }}" style="color:var(--text-secondary);text-decoration:none;font-size:0.9rem;">&larr; Back to Job Board</a>
+</div>
+
+<div class="card" style="max-width: 900px; margin: 0 auto; padding: 3rem;">
+    <!-- Header -->
+    <div style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 3rem; border-bottom: 1px solid var(--border); padding-bottom: 2rem;">
+        <div style="width: 80px; height: 80px; border-radius: var(--radius-md); background-color: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; overflow: hidden; border: 1px solid var(--border);">
+            {% if job.company_logo %}
+                <img src="{{ job.company_logo }}" style="width: 100%; height: 100%; object-fit: cover;">
+            {% else %}
+                {{ job.company_name[0].upper() if job.company_name else 'C' }}
+            {% endif %}
+        </div>
+        <div>
+            <h1 style="margin: 0; font-size: 1.75rem;">{{ job.title }}</h1>
+            <p style="margin: 0.25rem 0 0 0; color: var(--text-secondary); font-size: 1.1rem;">{{ job.company_name }}</p>
+        </div>
+    </div>
+
+    <!-- Progress Tracker -->
+    <div style="position: relative; margin-bottom: 4rem; padding: 0 1rem;">
+        <!-- Connecting Line -->
+        <div style="position: absolute; top: 24px; left: 1rem; right: 1rem; height: 4px; background-color: var(--border); z-index: 1;"></div>
+        
+        {% set status = application.status %}
+        {% set stage = 1 %}
+        {% if status == 'Viewed' %}{% set stage = 2 %}
+        {% elif status == 'Evaluating' %}{% set stage = 3 %}
+        {% elif status == 'Shortlisted' %}{% set stage = 4 %}
+        {% elif status in ['Hired', 'Rejected'] %}{% set stage = 5 %}{% endif %}
+
+        <!-- Stages -->
+        <div style="display: flex; justify-content: space-between; position: relative; z-index: 2;">
+            
+            <!-- Step 1: Applied -->
+            <div style="text-align: center; flex: 1;">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background-color: #10b981; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; font-size: 1.25rem; box-shadow: 0 0 0 4px white;">
+                    ✓
+                </div>
+                <div style="font-weight: 600; font-size: 0.85rem; color: var(--text);">Applied</div>
+                <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                    {{ application.applied_at.strftime('%b %d') if application.applied_at else '' }}
+                </div>
+            </div>
+
+            <!-- Step 2: Viewed -->
+            <div style="text-align: center; flex: 1;">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background-color: {{ '#10b981' if stage >= 2 else '#f3f4f6' }}; color: {{ 'white' if stage >= 2 else '#9ca3af' }}; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; font-size: 1.25rem; box-shadow: 0 0 0 4px white;">
+                    {{ '✓' if stage >= 2 else '2' }}
+                </div>
+                <div style="font-weight: 600; font-size: 0.85rem; color: {{ 'var(--text)' if stage >= 2 else 'var(--text-secondary)' }};">Viewed</div>
+            </div>
+
+            <!-- Step 3: Evaluating -->
+            <div style="text-align: center; flex: 1;">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background-color: {{ '#10b981' if stage >= 3 else '#f3f4f6' }}; color: {{ 'white' if stage >= 3 else '#9ca3af' }}; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; font-size: 1.25rem; box-shadow: 0 0 0 4px white;">
+                    {{ '✓' if stage >= 3 else '3' }}
+                </div>
+                <div style="font-weight: 600; font-size: 0.85rem; color: {{ 'var(--text)' if stage >= 3 else 'var(--text-secondary)' }};">Evaluating</div>
+            </div>
+
+            <!-- Step 4: Shortlisted -->
+            <div style="text-align: center; flex: 1;">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background-color: {{ '#10b981' if stage >= 4 else '#f3f4f6' }}; color: {{ 'white' if stage >= 4 else '#9ca3af' }}; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; font-size: 1.25rem; box-shadow: 0 0 0 4px white;">
+                    {{ '✓' if stage >= 4 else '4' }}
+                </div>
+                <div style="font-weight: 600; font-size: 0.85rem; color: {{ 'var(--text)' if stage >= 4 else 'var(--text-secondary)' }};">Shortlisted</div>
+            </div>
+
+            <!-- Step 5: Completed -->
+            <div style="text-align: center; flex: 1;">
+                {% set final_color = '#10b981' if status == 'Hired' else ('#ef4444' if status == 'Rejected' else '#f3f4f6') %}
+                <div style="width: 48px; height: 48px; border-radius: 50%; background-color: {{ final_color }}; color: {{ 'white' if stage == 5 else '#9ca3af' }}; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; font-size: 1.25rem; box-shadow: 0 0 0 4px white;">
+                    {{ '✓' if stage == 5 else '5' }}
+                </div>
+                <div style="font-weight: 600; font-size: 0.85rem; color: {{ 'var(--text)' if stage == 5 else 'var(--text-secondary)' }};">Completed</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Status Details Card -->
+    <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2.5rem;">
+        <h3 style="margin-top: 0; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; font-size: 1.25rem;">
+            Current Status: 
+            {% if status == 'Applied' %}
+                <span style="color: var(--primary);">Application Received</span>
+            {% elif status == 'Viewed' %}
+                <span style="color: var(--primary);">Viewed by Employer</span>
+            {% elif status == 'Evaluating' %}
+                <span style="color: #ca8a04;">Under Review</span>
+            {% elif status == 'Shortlisted' %}
+                <span style="color: #10b981;">Shortlisted for Interview! 🌟</span>
+            {% elif status == 'Hired' %}
+                <span style="color: #166534;">Congratulations! You're Hired 🎉</span>
+            {% elif status == 'Rejected' %}
+                <span style="color: #991b1b;">Application Not Selected</span>
+            {% endif %}
+        </h3>
+
+        <div style="color: var(--text); line-height: 1.7; font-size: 1.05rem;">
+            {% if status == 'Applied' %}
+                <p>Your application has been successfully submitted and is in the queue. The recruiting team will be notified shortly.</p>
+            {% elif status == 'Viewed' %}
+                <p>An admin has opened your profile and reviewed your details. They are currently deciding on the next steps.</p>
+            {% elif status == 'Evaluating' %}
+                <p>Your profile is being actively evaluated by our AI shortlisting engine and the management team. Good luck!</p>
+            {% elif status == 'Shortlisted' %}
+                <p>Great news! You have been shortlisted for this role. The recruiter has likely sent you a message in our **[Messages Hub]({{ url_for('chat.chat_hub') }})** with next steps.</p>
+                <div style="margin-top: 1.5rem;">
+                    <a href="{{ url_for('chat.chat_hub') }}" class="btn btn-primary" style="text-decoration: none;">Go to Messages Hub</a>
+                </div>
+            {% elif status == 'Hired' %}
+                <p>We are excited to move forward with your profile! Our HR team will reach out to you within 24-48 hours via email or phone for the next steps.</p>
+            {% elif status == 'Rejected' %}
+                <p>Thank you for your interest in the position. After careful consideration, we have decided to move forward with other candidates who more closely match our current requirements.</p>
+                {% if application.ai_feedback %}
+                    <div style="margin-top: 1.5rem; padding: 1.25rem; background: #fff1f2; border: 1px solid #fda4af; border-radius: 12px;">
+                        <strong style="color: #9f1239; font-size: 0.9rem; display: block; margin-bottom: 0.5rem; text-transform: uppercase;">AI Improvement Tip:</strong>
+                        <p style="margin: 0; color: #9f1239; font-style: italic;">"{{ application.ai_feedback }}"</p>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

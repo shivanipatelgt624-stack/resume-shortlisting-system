@@ -6,7 +6,7 @@ from docx import Document
 class ParserService:
     @staticmethod
     def extract_text(file_path):
-        """Extract text from PDF or DOCX file."""
+        """Extract text from PDF, DOCX, or Image file."""
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
             
@@ -15,8 +15,41 @@ class ParserService:
             return ParserService._extract_from_pdf(file_path)
         elif ext in ['docx', 'doc']:
             return ParserService._extract_from_docx(file_path)
+        elif ext in ['png', 'jpg', 'jpeg']:
+            return ParserService._extract_from_image(file_path)
         else:
             raise ValueError(f"Unsupported file format: {ext}")
+
+    @staticmethod
+    def _extract_from_image(file_path):
+        """Extract text from an image using Groq's Vision API."""
+        try:
+            import base64
+            from groq import Groq
+            
+            # Read image to base64
+            with open(file_path, "rb") as image_file:
+                base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+            
+            client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+            
+            chat_completion = client.chat.completions.create(
+                model="llama-3.2-11b-vision-preview",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Extract all the text tightly and exactly from this image. Do not include any conversational filler, just the extracted text."},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                        ]
+                    }
+                ],
+                temperature=0.1
+            )
+            return chat_completion.choices[0].message.content
+        except Exception as e:
+            print(f"Error reading Image via Groq: {e}")
+            raise
 
     @staticmethod
     def _extract_from_pdf(file_path):

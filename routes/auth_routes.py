@@ -37,7 +37,7 @@ def session_login():
     conn = db_config.get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, fullname, role FROM users WHERE id = %s", (uid,))
+        cursor.execute("SELECT id, fullname, role, phone, profile_pic FROM users WHERE id = %s", (uid,))
         user = cursor.fetchone()
         
         if not user:
@@ -47,6 +47,8 @@ def session_login():
         session['user_id'] = user[0]
         session['fullname'] = user[1]
         session['role'] = user[2]
+        session['phone'] = user[3]
+        session['profile_pic'] = user[4] if len(user) > 4 else None
         session['email'] = email
         
         # Decide redirect URL based on role
@@ -67,6 +69,7 @@ def api_register():
     email = data.get('email')
     fullname = data.get('fullname')
     role = data.get('role')
+    profile_pic = data.get('profile_pic')
     
     if not all([uid, email, fullname, role]):
         return jsonify({"error": "Missing required fields"}), 400
@@ -76,10 +79,10 @@ def api_register():
         cursor = conn.cursor()
         # insert into db
         query = """
-            INSERT INTO users (id, fullname, email, role) 
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO users (id, fullname, email, role, profile_pic) 
+            VALUES (%s, %s, %s, %s, %s)
         """
-        cursor.execute(query, (uid, fullname, email, role))
+        cursor.execute(query, (uid, fullname, email, role, profile_pic))
         conn.commit()
         
         # Also auto-login the user into server session
@@ -87,6 +90,7 @@ def api_register():
         session['fullname'] = fullname
         session['role'] = role
         session['email'] = email
+        session['profile_pic'] = profile_pic
         
         return jsonify({"status": "success", "redirect": url_for('success')})
     except Exception as e:

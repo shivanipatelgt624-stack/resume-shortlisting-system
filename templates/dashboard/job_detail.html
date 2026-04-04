@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}{{ job.title }} | Job Details{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('dashboard.recruiter_dashboard') }}"
+        style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem;">&larr; Back to Dashboard</a>
+</div>
+
+{% if error %}
+<div style="background-color: #fee2e2; color: #991b1b; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 2rem;">{{ error }}</div>
+{% endif %}
+
+{% if job %}
+<!-- Job Hero Card -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="margin: 0 0 0.4rem 0;">{{ job.title }}</h2>
+            <p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
+                Posted: {{ job.created_at.strftime('%d %b %Y') if job.created_at else 'N/A' }}
+                &nbsp;·&nbsp;
+                Min. Experience: <strong>{{ job.min_experience }}+ years</strong>
+            </p>
+        </div>
+        <span style="background-color: var(--primary); color: white; padding: 0.4rem 1rem; border-radius: 999px; font-weight: 600; white-space: nowrap; font-size: 0.9rem;">
+            {{ job.applicant_count }} Applicant{{ 's' if job.applicant_count != 1 else '' }}
+        </span>
+    </div>
+</div>
+
+<!-- Two-column layout -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; align-items: start;">
+
+    <!-- Left: Job Description -->
+    <div>
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <h3 style="margin: 0 0 1rem 0;">📋 Job Description</h3>
+            <div style="line-height: 1.8; color: var(--text); white-space: pre-wrap; font-size: 0.95rem;">{{ job.description }}</div>
+        </div>
+
+        <!-- Required Skills -->
+        <div class="card">
+            <h3 style="margin: 0 0 1rem 0;">🎯 Required Skills</h3>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                {% for skill in job.skills.split(',') %}
+                <span style="background-color: var(--primary); color: white; padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.85rem; font-weight: 500;">
+                    {{ skill.strip() }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Action Buttons + Skill Stats -->
+    <div>
+        <!-- Action Buttons -->
+        <div class="card" style="margin-bottom: 1.5rem; text-align: center;">
+            <h4 style="margin: 0 0 1.25rem 0; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em;">Quick Actions</h4>
+
+            <a href="{{ url_for('dashboard.job_applications', job_id=job.id) }}"
+                class="btn btn-primary btn-block"
+                style="display: block; text-align: center; text-decoration: none; margin-bottom: 0.75rem; padding: 0.85rem;">
+                👥 View & Shortlist
+            </a>
+
+            <a href="{{ url_for('dashboard.skills_overview', job_id=job.id) }}"
+                class="btn btn-block"
+                style="display:block; background-color: var(--surface); border: 1px solid var(--primary); color: var(--primary); width: 100%; padding: 0.85rem; text-decoration: none; text-align: center; font-size: 0.95rem; margin-bottom: 0.75rem; box-sizing: border-box;">
+                📊 Evaluate Applications
+            </a>
+
+            <button onclick="deleteJob({{ job.id }}, '{{ job.title }}')"
+                class="btn btn-block"
+                style="background-color: var(--surface); border: 1px solid #dc2626; color: #dc2626; width: 100%; padding: 0.85rem; cursor: pointer;">
+                🗑 Close Job Position
+            </button>
+        </div>
+
+        <!-- Skill Summary (hidden by default) -->
+        <div id="skill-summary-panel" style="display: none;">
+            <div class="card">
+                <h4 style="margin: 0 0 1rem 0;">📊 Skills Among Applicants</h4>
+                {% if skill_stats %}
+                    {% for skill, count in skill_stats %}
+                    <div style="margin-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem;">
+                            <span style="text-transform: capitalize;">{{ skill }}</span>
+                            <strong>{{ count }} / {{ job.applicant_count }}</strong>
+                        </div>
+                        <div style="background-color: #e5e7eb; border-radius: 999px; height: 8px;">
+                            <div style="height: 8px; border-radius: 999px; background-color: var(--primary);
+                                width: {% if job.applicant_count > 0 %}{{ ((count / job.applicant_count) * 100)|int }}{% else %}0{% endif %}%;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: var(--text-secondary); font-style: italic; font-size: 0.9rem; text-align: center; padding: 0.5rem 0;">
+                        No skill data yet. Skills will appear once applicants start applying.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endif %}
+
+<script>
+    function showSkillSummary() {
+        const panel = document.getElementById('skill-summary-panel');
+        const btn = document.getElementById('view-skills-btn');
+        if (panel.style.display === 'none') {
+            panel.style.display = 'block';
+            btn.textContent = '✖ Hide Evaluation';
+        } else {
+            panel.style.display = 'none';
+            btn.textContent = '📊 Evaluate Applications';
+        }
+    }
+
+    async function deleteJob(jobId, jobTitle) {
+        if (!confirm(`Are you sure you want to delete "${jobTitle}"?\n\nThis will permanently remove the job and ALL its applications. This cannot be undone.`)) return;
+
+        try {
+            const res = await fetch(`/api/jobs/${jobId}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (res.ok) {
+                alert('Job deleted successfully.');
+                window.location.href = '/recruiter/dashboard';
+            } else {
+                alert('Error: ' + (data.error || 'Failed to delete job.'));
+            }
+        } catch (err) {
+            alert('Network error: ' + err.message);
+        }
+    }
+</script>
+{% endblock %}

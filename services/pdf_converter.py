@@ -42,4 +42,19 @@ class PDFConverter:
                 pass
             return False
 
+    @staticmethod
+    def convert_image_to_pdf(input_path, output_path):
+        """Converts an image file (PNG, JPG) to a PDF using Pillow."""
+        try:
+            from PIL import Image
+            image = Image.open(input_path)
+            # Convert to RGB if necessary (e.g. for PNG with alpha channel)
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            image.save(output_path, "PDF", resolution=100.0)
+            return True
+        except Exception as e:
+            print(f"Failed to convert image to PDF: {e}")
+            return False
+
 pdf_converter = PDFConverter()

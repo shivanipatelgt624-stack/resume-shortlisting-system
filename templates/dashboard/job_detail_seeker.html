@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}{{ job.title }} | Resume Shortlisting System{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('dashboard.seeker_dashboard') }}" style="color:var(--text-secondary);text-decoration:none;font-size:0.9rem;">&larr; Back to Job Board</a>
+</div>
+
+<div class="card" style="padding: 3rem;">
+    <!-- Header Section -->
+    <div style="display: flex; gap: 2rem; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 2rem; margin-bottom: 2rem;">
+        
+        <!-- Large Company Logo -->
+        <div style="width: 100px; height: 100px; flex-shrink: 0; border-radius: var(--radius-md); background-color: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            {% if job.company_logo %}
+                <img src="{{ job.company_logo }}" style="width: 100%; height: 100%; object-fit: cover;">
+            {% else %}
+                {{ job.company_name[0].upper() if job.company_name else 'C' }}
+            {% endif %}
+        </div>
+        
+        <!-- Titles -->
+        <div style="flex: 1;">
+            <h1 style="margin: 0 0 0.5rem 0; font-size: 2.25rem; color: var(--text);">{{ job.title }}</h1>
+            <div style="font-size: 1.25rem; color: #4b5563; font-weight: 500; margin-bottom: 0.5rem;">
+                {{ job.company_name }}
+            </div>
+            <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                Posted on {{ job.created_at.strftime('%B %d, %Y') if (job.created_at and job.created_at.strftime) else 'Recent' }}
+            </div>
+        </div>
+        
+        <!-- CTA Action Bound -->
+        <div style="flex-shrink: 0; min-width: 200px; text-align: center;">
+            {% if application %}
+                <div style="margin-bottom: 0.75rem;">
+                    {% set status = application[0] if application is iterable and not application is mapping else application.status %}
+                    {% if status == 'Shortlisted' %}
+                        <span style="background-color: #f0fdf4; color: #15803d; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.95rem; border: 1px solid #15803d; display: block; width: 100%;">
+                            ✓ Shortlisted
+                        </span>
+                    {% elif status == 'Rejected' %}
+                        <span style="background-color: #fee2e2; color: #991b1b; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.95rem; border: 1px solid #991b1b; display: block; width: 100%;">
+                            Rejected
+                        </span>
+                    {% elif status == 'Hired' %}
+                        <span style="background-color: #dcfce7; color: #166534; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.95rem; border: 1px solid #166534; display: block; width: 100%;">
+                            ✓ Hired
+                        </span>
+                    {% else %}
+                        <span style="background-color: #dcfce7; color: #166534; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.95rem; border: 1px solid #166534; display: block; width: 100%;">
+                            ✓ Applied
+                        </span>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('dashboard.job_progress_seeker', job_id=job.id) }}" class="btn btn-primary" style="display: block; width: 100%; padding: 0.8rem; font-size: 1rem; text-decoration: none; text-align: center;">
+                    View Detailed Progress
+                </a>
+            {% else %}
+                <a href="{{ url_for('dashboard.seeker_apply', job_id=job.id) }}" class="btn btn-primary" style="display: block; width: 100%; padding: 1rem; font-size: 1.1rem; text-decoration: none; text-align: center; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
+                    Apply Now
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Body Profile Details -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 3rem;">
+        
+        <!-- Left: Description and Expanded Info -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            <div>
+                <h2 style="font-size: 1.5rem; margin-bottom: 1rem; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; display: inline-block;">About the Role</h2>
+                <div style="line-height: 1.7; color: var(--text); font-size: 1.05rem; white-space: pre-wrap;">{{ job.description }}</div>
+            </div>
+            
+            {% if job.roles_responsibilities %}
+            <div>
+                <h2 style="font-size: 1.5rem; margin-bottom: 1rem; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; display: inline-block;">Roles & Responsibilities</h2>
+                <div style="line-height: 1.7; color: var(--text-secondary); font-size: 1rem; white-space: pre-wrap; background-color: var(--surface); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border);">{{ job.roles_responsibilities }}</div>
+            </div>
+            {% endif %}
+            
+            {% if job.eligibility_criteria %}
+            <div>
+                <h2 style="font-size: 1.5rem; margin-bottom: 1rem; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; display: inline-block;">Eligibility Criteria</h2>
+                <div style="line-height: 1.7; color: var(--text-secondary); font-size: 1rem; white-space: pre-wrap; background-color: var(--surface); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border);">{{ job.eligibility_criteria }}</div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Right: Requirements Panel -->
+        <div>
+            <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem;">
+                
+                <h3 style="font-size: 1.1rem; margin-top: 0; margin-bottom: 1rem; color: var(--text);">Requirements</h3>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <strong style="display: block; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;">Minimum Experience</strong>
+                    <div style="font-size: 1.1rem; color: var(--text); font-weight: 500;">
+                        {{ job.min_experience }} {% if job.min_experience == 1 %}Year{% else %}Years{% endif %}+
+                    </div>
+                </div>
+                
+                <div>
+                    <strong style="display: block; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Required Skills</strong>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        {% set skills_list = job.skills.split(',') %}
+                        {% for skill in skills_list %}
+                            {% if skill.strip() %}
+                                <span style="background-color: var(--primary-light); color: var(--primary); padding: 0.4rem 0.8rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 500; border: 1px solid rgba(37, 99, 235, 0.2);">
+                                    {{ skill.strip() }}
+                                </span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

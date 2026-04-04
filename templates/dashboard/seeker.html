@@ -17,28 +17,71 @@
 
 <div class="jobs-list">
     {% if jobs %}
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
         {% for job in jobs %}
-        <div class="card">
-            <h3>{{ job.title }}</h3>
-            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                Posted by {{ job.recruiter_name }} on {{ job.created_at.strftime('%Y-%m-%d') if job.created_at else
-                'N/A' }}
-            </p>
+        <a href="{{ url_for('dashboard.job_detail_seeker', job_id=job.id) }}" style="text-decoration: none; color: inherit; display: block;">
+            <div class="card" style="position: relative; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; height: 100%; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: 16px; padding: 0.5rem;" onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)'; this.style.borderColor='var(--primary)'" onmouseout="this.style.transform='none'; this.style.boxShadow='0 1px 3px 0 rgba(0,0,0,0.1)'; this.style.borderColor='var(--border)'">
+                
+                <!-- Status Badge (Absolute Top-Right) -->
+                {% if job.id in applied_jobs %}
+                    {% set app_status = applied_jobs[job.id].status %}
+                    <div style="position: absolute; top: 1rem; right: 1rem; z-index: 10;">
+                        {% if app_status == 'Hired' %}
+                            <span style="background-color: #dcfce7; color: #166534; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">✓ Hired</span>
+                        {% elif app_status == 'Rejected' %}
+                            <span style="background-color: #fee2e2; color: #991b1b; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Rejected</span>
+                        {% elif app_status == 'Shortlisted' %}
+                            <span style="background-color: #f0fdf4; color: #15803d; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; border: 1px solid #bbf7d0;">✓ Shortlisted</span>
+                        {% elif app_status == 'Evaluating' %}
+                            <span style="background-color: #fef08a; color: #854d0e; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">⚖ Evaluating</span>
+                        {% elif app_status == 'Viewed' %}
+                            <span style="background-color: #e0f2fe; color: #0369a1; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">👁 Viewed</span>
+                        {% else %}
+                            <span style="background-color: var(--primary-light); color: var(--primary); padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">✓ Applied</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
 
-            <div style="margin-bottom: 0.5rem;"><strong>Experience:</strong> {{ job.min_experience }}+ years</div>
-            <div style="margin-bottom: 1rem;"><strong>Skills required:</strong> {{ job.skills }}</div>
+                <!-- Content Wrapper (Top Heavy) -->
+                <div style="padding: 1.5rem; flex-grow: 1;">
+                    <div style="display: flex; gap: 1.25rem; align-items: start;">
+                        <!-- Logo Initials Box -->
+                        <div style="width: 64px; height: 64px; flex-shrink: 0; border-radius: 12px; background: linear-gradient(135deg, var(--primary-light), #e0e7ff); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 800; overflow: hidden; border: 1.5px solid rgba(37, 99, 235, 0.1);">
+                            {% if job.company_logo %}
+                                <img src="{{ job.company_logo }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                                {{ job.recruiter_name[0].upper() if job.recruiter_name else 'C' }}
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Core Textual Data -->
+                        <div style="flex: 1; min-width: 0;">
+                            <h4 style="margin: 0; font-size: 0.85rem; color: #6366f1; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; margin-bottom: 0.25rem;">{{ job.recruiter_name }}</h4>
+                            <h3 style="margin: 0; font-size: 1.35rem; color: var(--text); line-height: 1.2; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ job.title }}</h3>
+                            <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem;">
+                                <span>Posted by <strong>{{ job.recruiter_name }}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            {% if job.id in applied_jobs %}
-            <div
-                style="margin-top: 1rem; padding: 0.5rem; background-color: #dcfce7; color: #166534; border-radius: var(--radius-md); text-align: center; font-weight: 500;">
-                Status: {{ applied_jobs[job.id].status }}
+                <!-- Footer with Meta Info and Button -->
+                <div style="padding: 1.25rem 1.5rem; border-top: 1px dashed var(--border); display: flex; justify-content: space-between; align-items: center; background-color: #fcfcfc;">
+                    <div style="display: flex; flex-direction: column; gap: 0.15rem;">
+                        <span style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600; letter-spacing: 0.025em;">Date Posted</span>
+                        <span style="font-size: 0.9rem; color: var(--text); font-weight: 500;">{{ job.created_at.strftime('%b %d, %Y') if (job.created_at and job.created_at.strftime) else 'Recent' }}</span>
+                    </div>
+
+                    <div style="background-color: var(--primary); color: white; padding: 0.6rem 1.25rem; border-radius: 10px; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        {% if job.id in applied_jobs %}
+                            View Details →
+                        {% else %}
+                            Apply Now →
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-            {% else %}
-            <button class="btn btn-primary btn-block" style="margin-top: 1rem;"
-                onclick="openApplyModal({{ job.id }}, '{{ job.title }}')">Apply Now</button>
-            {% endif %}
-        </div>
+        </a>
         {% endfor %}
     </div>
     {% else %}
@@ -47,95 +90,4 @@
     </div>
     {% endif %}
 </div>
-
-<!-- Apply Modal -->
-<div id="applyModal"
-    style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center;">
-    <div class="card" style="width: 100%; max-width: 400px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h3>Apply for <span id="modalJobTitle"></span></h3>
-            <button onclick="closeApplyModal()"
-                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
-        </div>
-
-        <form id="apply-form" enctype="multipart/form-data">
-            <input type="hidden" id="modalJobId" value="">
-
-            <div class="form-group">
-                <label class="form-label" for="resume">Upload Resume (PDF/DOCX only)</label>
-                <input type="file" id="resume" name="resume" class="form-control" accept=".pdf,.docx,.doc" required>
-                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">Max file size: 5MB</p>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-block">Submit Application</button>
-        </form>
-    </div>
-</div>
-
-<script>
-    function openApplyModal(jobId, jobTitle) {
-        document.getElementById('modalJobId').value = jobId;
-        document.getElementById('modalJobTitle').textContent = jobTitle;
-        document.getElementById('applyModal').style.display = 'flex';
-    }
-
-    function closeApplyModal() {
-        document.getElementById('applyModal').style.display = 'none';
-        document.getElementById('apply-form').reset();
-    }
-
-    document.getElementById('apply-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Uploading...';
-
-        const jobId = document.getElementById('modalJobId').value;
-        const fileInput = document.getElementById('resume');
-
-        if (fileInput.files.length === 0) {
-            alert("Please select a file to upload.");
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Application';
-            return;
-        }
-
-        const file = fileInput.files[0];
-
-        // Basic size validation (5MB max)
-        if (file.size > 5 * 1024 * 1024) {
-            alert("File is too large. Maximum size is 5MB.");
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Application';
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('resume', file);
-
-        try {
-            const response = await fetch(`/api/apply/${jobId}`, {
-                method: 'POST',
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                alert(data.message || 'Application submitted successfully!');
-                window.location.reload();
-            } else {
-                alert(data.error || 'Failed to submit application');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit Application';
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('An unexpected error occurred during upload.');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Application';
-        }
-    });
-</script>
-{% endblock %}
+{% endblock %}

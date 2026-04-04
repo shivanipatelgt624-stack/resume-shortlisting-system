@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Complete Your Profile | AutoShortlist{% endblock %}
+
+{% block content %}
+<div style="max-width: 650px; margin: 4rem auto; padding: 2rem;">
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <span style="font-size: 4rem;">👋</span>
+        <h1 style="font-weight: 800; font-size: 2.5rem; margin-top: 1.5rem; background: linear-gradient(135deg, #10b981, #059669); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Build Your Candidate Profile</h1>
+        <p style="color: var(--text-secondary); font-size: 1.1rem; margin-top: 0.75rem;">Complete your profile once to unlock jobs, applications, and AI shortlisting.</p>
+    </div>
+
+    <form id="onboarding-seeker-form" class="card" style="padding: 2.5rem; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" value="{{ session.get('fullname', '') }}" disabled style="background-color: #f8fafc; color: #64748b; font-weight: 600;">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="phone">Phone Number <span style="color: #ef4444;">*</span></label>
+                <input type="tel" id="phone" name="phone" class="form-control" placeholder="e.g. +1 555-0123" required>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label class="form-label" for="experience_type">Experience Level <span style="color: #ef4444;">*</span></label>
+            <select id="experience_type" name="experience_type" class="form-control" required>
+                <option value="Fresher">🎓 Fresher (0-1 year)</option>
+                <option value="Intern">💼 Intern</option>
+                <option value="Experienced">⚡ Experienced Professional</option>
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label class="form-label" for="skills">Key Skills <span style="color: #ef4444;">*</span></label>
+            <input type="text" id="skills" name="skills" class="form-control" placeholder="e.g. Python, SQL, Project Management" required>
+            <p style="font-size: 0.8rem; color: #64748b; margin-top: 0.4rem;">Separate skills with commas (e.g. React, Docker, SQL)</p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 2.5rem;">
+            <label class="form-label" for="bio_summary">Short Bio / Introduction</label>
+            <textarea id="bio_summary" name="bio_summary" class="form-control" rows="4" placeholder="Tell us about your professional goals..."></textarea>
+        </div>
+
+        <button type="submit" id="submit-btn" style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 1.1rem; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4); transition: transform 0.2s;">
+            Set Up Profile 🚀
+        </button>
+    </form>
+</div>
+
+<script>
+document.getElementById('onboarding-seeker-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = "Setting up profile...";
+
+    const payload = {
+        phone: document.getElementById('phone').value.trim(),
+        experience_type: document.getElementById('experience_type').value,
+        skills_text: document.getElementById('skills').value,
+        bio_summary: document.getElementById('bio_summary').value
+    };
+    
+    try {
+        const res = await fetch('/api/seeker/onboarding', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            window.location.href = '/seeker/dashboard?onboarding_success=true';
+        } else {
+            alert(data.error || "Failed to save profile.");
+            btn.disabled = false;
+            btn.textContent = "Set Up Profile 🚀";
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Unexpected error occurred.");
+        btn.disabled = false;
+        btn.textContent = "Set Up Profile 🚀";
+    }
+});
+</script>
+{% endblock %}

@@ -4,17 +4,24 @@ from config.database import db_config
 from routes.auth_routes import auth_bp
 from routes.dashboard_routes import dashboard_bp
 from routes.api_routes import api_bp
+from routes.chat_routes import chat_bp, init_chat_socketio
+from flask_socketio import SocketIO
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'super_secret_dev_key_change_in_prod')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Register Blueprints
 app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard_bp)
 app.register_blueprint(api_bp)
+app.register_blueprint(chat_bp)
+
+# Initialize SocketIO events
+init_chat_socketio(socketio)
 
 # Initialize database tables on app startup
 def init_db():
@@ -67,4 +74,6 @@ def health():
 if __name__ == "__main__":
     # Initialize database before running the app
     init_db()
-    app.run(debug=True)
+    print("[SUCCESS] Server is starting on http://127.0.0.1:5000")
+    # use_reloader=False is critical to avoid the double-start crash with eventlet on Windows
+    socketio.run(app, debug=True, host='127.0.0.1', port=5000, use_reloader=False)

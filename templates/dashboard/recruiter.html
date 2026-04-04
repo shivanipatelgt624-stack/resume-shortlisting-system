@@ -5,129 +5,492 @@
 {% block content %}
 <div class="dashboard-header"
     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h2>Recruiter Dashboard</h2>
-    <button class="btn btn-primary" onclick="openJobModal()">+ Post a New Job</button>
+    <div>
+        <h2 style="margin-bottom: 0.25rem;">Recruiter Dashboard</h2>
+        <p style="color: var(--text-secondary); margin: 0;">Click on a job card to view applicants.</p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <button class="btn btn-primary" onclick="openJobModal()">+ Post a New Job</button>
+    </div>
+</div>
+
+            <h3 style="margin: 0;">🔒 Select Job to Close</h3>
+            <button onclick="closeDeleteModal()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+        </div>
+        {% if jobs %}
+            {% for job in jobs %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
+                <div>
+                    <p style="margin: 0; font-weight: 600;">{{ job.title }}</p>
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-secondary);">{{ job.applicant_count }} applicant{{ 's' if job.applicant_count != 1 else '' }}</p>
+                </div>
+                <button onclick="deleteJob({{ job.id }}, '{{ job.title }}')"
+                    style="background: #fee2e2; border: 1px solid #fca5a5; color: #dc2626; padding: 0.35rem 0.85rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; white-space: nowrap;">
+                    Close Position
+                </button>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: var(--text-secondary); text-align: center; padding: 1rem 0;">No jobs posted yet.</p>
+        {% endif %}
+    </div>
 </div>
 
 {% if error %}
-<div
-    style="background-color: #fee2e2; color: #991b1b; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 2rem;">
+<div style="background-color: #fee2e2; color: #991b1b; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 2rem;">
     {{ error }}
 </div>
 {% endif %}
 
-<div class="jobs-list">
+<!-- Navigation Tabs -->
+<div style="display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 2rem;">
+    <a onclick="showRecruiterTab('jobs')" id="nav-tab-jobs"
+        style="padding: 0.75rem 1.5rem; text-decoration: none; font-weight: 600; border-bottom: 2px solid var(--primary); margin-bottom: -2px; color: var(--primary); cursor: pointer;">
+        💼 JOBS
+    </a>
+    <a onclick="showRecruiterTab('analytics')" id="nav-tab-analytics"
+        style="padding: 0.75rem 1.5rem; text-decoration: none; font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-secondary); cursor: pointer;">
+        📈 ANALYTICS
+    </a>
+    <a onclick="showRecruiterTab('profile')" id="nav-tab-profile"
+        style="padding: 0.75rem 1.5rem; text-decoration: none; font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-secondary); cursor: pointer;">
+        👤 PROFILE
+    </a>
+</div>
+
+<!-- ================= JOBS TAB ================= -->
+<div id="tab-content-jobs" class="jobs-list">
     {% if jobs %}
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem;">
         {% for job in jobs %}
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <h3>{{ job.title }}</h3>
-                <span
-                    style="background-color: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold;">
-                    {{ job.applicant_count }} Applicants
+        <div class="card"
+            style="position: relative; border: 1px solid var(--border); padding: 0; overflow: hidden;">
+
+            <!-- Close button — top right corner, inside the card -->
+            {% if job.status != 'Closed' %}
+            <button
+                onclick="deleteJob({{ job.id }}, '{{ job.title }}')"
+                title="Close this job position"
+                style="position: absolute; top: 0.6rem; right: 0.6rem; background: #fee2e2; border: none; color: #dc2626; border-radius: 6px; width: 30px; height: 30px; font-size: 1rem; cursor: pointer; z-index: 5; line-height: 1;">
+                🔒
+            </button>
+            {% endif %}
+
+            <!-- Clickable area that goes to job detail -->
+            <a href="{{ url_for('dashboard.job_detail', job_id=job.id) }}"
+                style="text-decoration: none; display: block; padding: 1.25rem; padding-right: 2.5rem;"
+                title="View details for {{ job.title }}">
+                <h3 style="font-size: 1.1rem; color: var(--text); margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                    {{ job.title }}
+                    {% if job.status == 'Closed' %}
+                    <span style="background: #64748b; color: white; padding: 1px 8px; border-radius: 4px; font-size: 0.65rem; text-transform: uppercase;">Closed</span>
+                    {% endif %}
+                </h3>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 0.75rem 0;">
+                    Posted: {{ job.created_at.strftime('%d %b %Y') if job.created_at else 'N/A' }}
+                </p>
+                <span style="background-color: var(--primary); color: white; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;">
+                    {{ job.applicant_count }} applicant{{ 's' if job.applicant_count != 1 else '' }}
                 </span>
-            </div>
-            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">Posted: {{
-                job.created_at.strftime('%Y-%m-%d') if job.created_at else 'N/A' }}</p>
-            <div style="margin-bottom: 0.5rem;"><strong>Experience:</strong> {{ job.min_experience }} years</div>
-            <div style="margin-bottom: 1rem;"><strong>Skills:</strong> {{ job.skills }}</div>
-            <p
-                style="margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-                {{ job.description }}</p>
-            <a href="{{ url_for('dashboard.job_applications', job_id=job.id) }}" class="btn btn-block"
-                style="background-color: var(--surface); border: 1px solid var(--border); text-align: center; text-decoration: none; display: inline-block;">View
-                Applications</a>
+            </a>
         </div>
         {% endfor %}
     </div>
     {% else %}
     <div class="card" style="text-align: center; padding: 3rem;">
         <p style="font-size: 1.25rem; color: var(--text-secondary);">You haven't posted any jobs yet.</p>
+        <button class="btn btn-primary" style="margin-top: 1rem;" onclick="openJobModal()">Post Your First Job</button>
     </div>
     {% endif %}
 </div>
 
 <!-- Add Job Modal -->
 <div id="jobModal"
-    style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center;">
-    <div class="card" style="width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h3>Post a New Job</h3>
+    style="display: none; position: fixed; inset: 0; background-color: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px); z-index: 100; align-items: center; justify-content: center; padding: 1.5rem;">
+    <div class="card" style="width: 100%; max-width: 1100px; max-height: 95vh; overflow-y: auto; padding: 0; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255, 255, 255, 0.95); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+        
+        <!-- Modal Header -->
+        <div style="padding: 1.5rem 2.5rem; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.5rem;">✨</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700;">Post a New Job Opportunity</h3>
+                    <p style="margin: 0; font-size: 0.85rem; color: rgba(255,255,255,0.8);">Fill in the details to attract the best talent.</p>
+                </div>
+            </div>
             <button onclick="closeJobModal()"
-                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); font-size: 1.5rem; cursor: pointer; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">&times;</button>
         </div>
 
-        <form id="create-job-form">
-            <div class="form-group">
-                <label class="form-label" for="title">Job Title</label>
-                <input type="text" id="title" class="form-control" required>
+        <form id="create-job-form" enctype="multipart/form-data" style="padding: 2.5rem;">
+            
+            <!-- Three Column Grid Top -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-bottom: 2rem;">
+                
+                <!-- Col 1: Job Core -->
+                <div style="display: flex; flex-direction: column; gap: 1.25rem; padding: 1.5rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="font-size: 1.2rem;">🏢</span>
+                        <h4 style="margin: 0; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: #475569;">Company & Role</h4>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label" for="title">Job Title <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="title" name="title" class="form-control" placeholder="e.g. Lead Designer" required>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label" for="company_name">Company Name</label>
+                        <input type="text" id="company_name" name="company_name" class="form-control" placeholder="Acme Inc." value="{{ company_profile.company_name if company_profile else '' }}">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label" for="company_logo">Company Logo (Leave blank to use profile logo)</label>
+                        <input type="file" id="company_logo" name="company_logo" class="form-control" accept="image/*" style="padding: 0.4rem;">
+                        {% if company_profile and company_profile.company_logo %}
+                        <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <img src="{{ company_profile.company_logo }}" style="height: 24px; width: 24px; border-radius: 4px; object-fit: cover;">
+                            <span style="font-size: 0.75rem; color: #64748b;">Current profile logo will be used if no new file is chosen.</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Col 2: Requirements -->
+                <div style="display: flex; flex-direction: column; gap: 1.25rem; padding: 1.5rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="font-size: 1.2rem;">🛠️</span>
+                        <h4 style="margin: 0; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: #475569;">Skills & Experience</h4>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label" for="skills">Required Skills <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="skills" name="skills" class="form-control" placeholder="React, Node.js, AWS" required>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label" for="min_experience">Min Experience (Years)</label>
+                        <input type="number" id="min_experience" name="min_experience" class="form-control" min="0" value="0" required>
+                    </div>
+                    <div style="padding: 1rem; background: #eff6ff; border-radius: 8px; border: 1px solid #dbeafe; font-size: 0.8rem; color: #1e40af;">
+                        💡 Tip: List at least 3-5 key skills for better AI matching accuracy.
+                    </div>
+                </div>
+
+                <!-- Col 3: Overview -->
+                <div style="display: flex; flex-direction: column; gap: 1.25rem; padding: 1.5rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="font-size: 1.2rem;">📝</span>
+                        <h4 style="margin: 0; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: #475569;">Introductory Hook</h4>
+                    </div>
+                    <div class="form-group" style="margin: 0; flex: 1; display: flex; flex-direction: column;">
+                        <label class="form-label" for="description">Short Description <span style="color: #ef4444;">*</span></label>
+                        <textarea id="description" name="description" class="form-control" style="flex: 1; min-height: 150px; resize: none;" placeholder="Provide a high-level summary of the role and team culture..." required></textarea>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="description">Job Description</label>
-                <textarea id="description" class="form-control" rows="4" required></textarea>
+
+            <!-- Bottom Multi-Column Details -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div class="form-group" style="margin: 0;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.1rem;">✅</span>
+                        <h4 style="margin: 0; font-size: 0.95rem; color: #1e293b;">Roles & Responsibilities</h4>
+                    </div>
+                    <textarea id="roles_responsibilities" name="roles_responsibilities" class="form-control" rows="5" style="border-radius: 12px; resize: vertical;" placeholder="Detailed list of daily tasks and expectations..."></textarea>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.1rem;">🎓</span>
+                        <h4 style="margin: 0; font-size: 0.95rem; color: #1e293b;">Eligibility Criteria</h4>
+                    </div>
+                    <textarea id="eligibility_criteria" name="eligibility_criteria" class="form-control" rows="5" style="border-radius: 12px; resize: vertical;" placeholder="Education, certifications, or specific physical requirements..."></textarea>
+                </div>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="skills">Required Skills (comma separated)</label>
-                <input type="text" id="skills" class="form-control" placeholder="Python, SQL, AWS" required>
+
+            <!-- Footer Actions -->
+            <div style="margin-top: 3rem; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
+                <button type="button" onclick="closeJobModal()" style="padding: 0.75rem 1.5rem; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">Discard Draft</button>
+                <button type="submit" id="create-job-submit-btn" style="padding: 0.75rem 2.5rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 700; font-size: 1rem; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">🚀 Publish Opportunity</button>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="min_experience">Minimum Experience (Years)</label>
-                <input type="number" id="min_experience" class="form-control" min="0" value="0" required>
-            </div>
-            <button type="submit" class="btn btn-primary btn-block">Create Job</button>
         </form>
     </div>
 </div>
 
+<!-- ================= ANALYTICS TAB ================= -->
+<div id="tab-content-analytics" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0;">📈 Hiring Analytics</h3>
+    </div>
+    
+    <div id="analytics-loading" style="text-align: center; padding: 3rem; color: var(--text-secondary); display: none;">
+        ⏳ Loading metrics...
+    </div>
+    
+    <div id="analytics-content-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        
+        <!-- Metric Card 0: Time Period Selector (Card Format) -->
+        <div class="card" style="text-align: center; border-bottom: 4px solid var(--text-secondary); display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📅</div>
+            <p style="margin: 0 0 1rem 0; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Time Period</p>
+            <select id="analytics-period" onchange="fetchAnalytics()" style="padding: 0.6rem; border: 2px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--text); font-size: 1.1rem; font-weight: bold; cursor: pointer; width: 100%; outline: none;">
+                <option value="all">All Time</option>
+                <option value="7">Last 7 Days</option>
+                <option value="30" selected>Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+            </select>
+        </div>
+
+        <!-- Metric Card 1: Jobs Posted -->
+        <div class="card" style="text-align: center; border-bottom: 4px solid var(--primary); display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">💼</div>
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Total Jobs Posted</p>
+            <h2 id="metric-jobs" style="margin: 0; font-size: 2.5rem; color: var(--text);">0</h2>
+        </div>
+        
+        <!-- Metric Card 2: Candidates Applied -->
+        <div class="card" style="text-align: center; border-bottom: 4px solid #f59e0b; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Total Candidates</p>
+            <h2 id="metric-candidates" style="margin: 0; font-size: 2.5rem; color: var(--text);">0</h2>
+        </div>
+        
+        <!-- Metric Card 3: Candidates Hired -->
+        <div class="card" style="text-align: center; border-bottom: 4px solid #10b981; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎉</div>
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Candidates Hired</p>
+            <h2 id="metric-hired" style="margin: 0; font-size: 2.5rem; color: var(--text);">0</h2>
+        </div>
+        
+    </div>
+</div>
+
+<!-- ================= PROFILE TAB ================= -->
+<div id="tab-content-profile" style="display: none;">
+    <div class="card" style="max-width: 600px; margin: 0 auto; padding: 2.5rem;">
+        <h3 style="margin: 0 0 1.5rem 0; border-bottom: 2px solid var(--border); padding-bottom: 1rem;">👤 Recruiter Profile</h3>
+        
+        <div style="display: flex; gap: 2rem; align-items: flex-start;">
+            <!-- Profile Avatar -->
+            <div style="text-align: center;">
+                <div id="profile-pic-container" style="width: 120px; height: 120px; border-radius: 50%; background-color: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold; margin: 0 auto 1rem auto; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; position: relative;">
+                    {% if session.get('profile_pic') %}
+                        <img src="{{ session.get('profile_pic') }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                        {{ session.get('fullname', 'U')[0].upper() }}
+                    {% endif %}
+                </div>
+                
+                <input type="file" id="photo-upload-input" accept="image/*" style="display: none;" onchange="uploadProfilePhoto(this)">
+                <button onclick="document.getElementById('photo-upload-input').click()" id="upload-photo-btn" style="background: none; border: 1px solid var(--primary); color: var(--primary); font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); padding: 0.4rem 0.8rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--primary)'; this.style.color='white'" onmouseout="this.style.background='none'; this.style.color='var(--primary)'">
+                    Update Picture
+                </button>
+            </div>
+            
+            <!-- Profile Details -->
+            <div style="flex: 1;">
+                <div style="margin-bottom: 1.25rem;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em;">Full Name</label>
+                    <div style="padding: 0.75rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); font-weight: 500; color: var(--text);">
+                        {{ session.get('fullname', 'Not Available') }}
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1.25rem;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em;">Email Address</label>
+                    <div style="padding: 0.75rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); font-weight: 500; color: var(--text);">
+                        {{ session.get('email', 'Not Available') }}
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1.25rem;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em;">Phone Number</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="tel" id="profile-phone" placeholder="Enter phone number" value="{{ session.get('phone', '') or '' }}" style="flex: 1; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-weight: 500; font-family: inherit;">
+                        <button onclick="saveProfilePhone()" id="save-phone-btn" style="background-color: var(--primary); color: white; border: none; padding: 0 1.2rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer;">Save</button>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-    function openJobModal() {
-        const modal = document.getElementById('jobModal');
-        modal.style.display = 'flex';
+async function saveProfilePhone() {
+    const btn = document.getElementById('save-phone-btn');
+    const input = document.getElementById('profile-phone');
+    const phone = input.value.trim();
+    
+    if (!phone) {
+        alert("Please enter a valid phone number.");
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.textContent = "Saving...";
+    
+    try {
+        const res = await fetch('/api/profile/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: phone })
+        });
+        
+        const data = await res.json();
+        if(res.ok) {
+            btn.textContent = "Saved ✓";
+            btn.style.backgroundColor = "#10b981";
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = "Save";
+                btn.style.backgroundColor = "var(--primary)";
+            }, 2000);
+        } else {
+            alert(data.error || "Failed to save phone number");
+            btn.disabled = false;
+            btn.textContent = "Save";
+        }
+    } catch (err) {
+        alert("Network error: " + err.message);
+        btn.disabled = false;
+        btn.textContent = "Save";
+    }
+}
+
+async function uploadProfilePhoto(input) {
+    if (!input.files || input.files.length === 0) return;
+    
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('photo', file);
+    
+    const btn = document.getElementById('upload-photo-btn');
+    const oldText = btn.textContent;
+    btn.textContent = "Uploading...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/profile/upload-photo', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        
+        if (res.ok && data.photo_url) {
+            const container = document.getElementById('profile-pic-container');
+            container.innerHTML = `<img src="${data.photo_url}" style="width: 100%; height: 100%; object-fit: cover;">`;
+        } else {
+            alert("Upload failed: " + (data.error || "Unknown error"));
+        }
+    } catch (e) {
+        console.error("Upload error:", e);
+        alert("Network error during upload.");
+    } finally {
+        btn.textContent = oldText;
+        btn.disabled = false;
+        input.value = '';
+    }
+}
+</script>
+
+<script>
+    // Tab switching logic
+    function showRecruiterTab(tabId) {
+        const panels = ['jobs', 'analytics', 'profile'];
+        panels.forEach(id => {
+            const panel = document.getElementById('tab-content-' + id);
+            const tab = document.getElementById('nav-tab-' + id);
+            if (panel) panel.style.display = (id === tabId) ? 'block' : 'none';
+            if (tab) {
+                tab.style.borderBottomColor = (id === tabId) ? 'var(--primary)' : 'transparent';
+                tab.style.color = (id === tabId) ? 'var(--primary)' : 'var(--text-secondary)';
+            }
+        });
+        
+        // Auto-fetch analytics when opening the tab
+        if (tabId === 'analytics') {
+            fetchAnalytics();
+        }
     }
 
+    // Analytics fetch logic
+    async function fetchAnalytics() {
+        const periodElement = document.getElementById('analytics-period');
+        if(!periodElement) return;
+
+        const period = periodElement.value;
+        const loader = document.getElementById('analytics-loading');
+        const grid = document.getElementById('analytics-content-grid');
+        
+        loader.style.display = 'block';
+        grid.style.opacity = '0.3';
+        
+        try {
+            const res = await fetch('/api/analytics?period=' + period);
+            const data = await res.json();
+            
+            if (res.ok) {
+                document.getElementById('metric-jobs').textContent = data.jobs_posted;
+                document.getElementById('metric-candidates').textContent = data.candidates_applied;
+                document.getElementById('metric-hired').textContent = data.candidates_hired;
+            } else {
+                console.error("Failed to load analytics:", data.error);
+                alert("Could not load analytics: " + data.error);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            loader.style.display = 'none';
+            grid.style.opacity = '1';
+        }
+    }
+
+    // Modal forms and deleting jobs
+    function openJobModal() { document.getElementById('jobModal').style.display = 'flex'; }
     function closeJobModal() {
-        const modal = document.getElementById('jobModal');
-        modal.style.display = 'none';
+        document.getElementById('jobModal').style.display = 'none';
         document.getElementById('create-job-form').reset();
     }
 
+    // Form submission logic
     document.getElementById('create-job-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const submitBtn = document.getElementById('create-job-submit-btn');
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Creating...';
-
-        const payload = {
-            title: document.getElementById('title').value,
-            description: document.getElementById('description').value,
-            skills: document.getElementById('skills').value,
-            min_experience: parseInt(document.getElementById('min_experience').value)
-        };
-
+        submitBtn.textContent = 'Publishing...';
+        
+        // We MUST use FormData because we are sending a file (Company Logo)
+        const formElement = document.getElementById('create-job-form');
+        const formData = new FormData(formElement);
+        
         try {
             const response = await fetch('/api/jobs', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: formData // Note: Content-Type is set automatically by the browser when using FormData
             });
-
             const data = await response.json();
-
-            if (response.ok) {
-                window.location.reload();
-            } else {
+            if (response.ok) { window.location.reload(); }
+            else {
                 alert(data.error || 'Failed to create job');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Create Job';
+                submitBtn.innerHTML = '🚀 Publish Job';
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error(error);
             alert('An unexpected error occurred.');
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Create Job';
+            submitBtn.innerHTML = '🚀 Publish Job';
         }
     });
+
+    async function deleteJob(jobId, jobTitle) {
+        if (!confirm('Close position for "' + jobTitle + '"?\n\nThis will hide the job from candidates, but you can still view current applicants.')) return;
+        try {
+            const res = await fetch('/api/jobs/' + jobId, { method: 'DELETE' });
+            const data = await res.json();
+            if (res.ok) { window.location.reload(); }
+            else { alert('Error: ' + (data.error || 'Failed to close position.')); }
+        } catch (err) { alert('Network error: ' + err.message); }
+    }
+
+    function openDeleteModal() { document.getElementById('deleteModal').style.display = 'flex'; }
+    function closeDeleteModal() { document.getElementById('deleteModal').style.display = 'none'; }
 </script>
+
 {% endblock %}

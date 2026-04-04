@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+
+{% block title %}{{ applicant.fullname }} — AI Evaluation | Resume Shortlisting System{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('dashboard.recruiter_dashboard') }}" style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem;">&larr; Dashboard</a>
+    <span style="color: var(--text-secondary); margin: 0 0.4rem;">/</span>
+    <a href="{{ url_for('dashboard.job_applications', job_id=job.id) }}" style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem;">{{ job.title }}</a>
+    <span style="color: var(--text-secondary); margin: 0 0.4rem;">/</span>
+    <span style="color: var(--text); font-size: 0.9rem;">{{ applicant.fullname }}</span>
+</div>
+
+<!-- Candidate Header -->
+<div class="card" style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem; padding: 1.5rem;">
+    <div style="background-color: var(--primary); color: white; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: bold; flex-shrink: 0; overflow: hidden;">
+        {% if applicant.profile_pic %}
+            <img src="{{ applicant.profile_pic }}" style="width: 100%; height: 100%; object-fit: cover;">
+        {% else %}
+            {{ applicant.fullname[0].upper() }}
+        {% endif %}
+    </div>
+    <div style="flex: 1;">
+        <h2 style="margin: 0 0 0.25rem 0;">{{ applicant.fullname }}</h2>
+        <p style="margin: 0; color: var(--text-secondary);">{{ applicant.email }}</p>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-secondary);">
+            Applied: {{ applicant.applied_at.strftime('%d %b %Y, %I:%M %p') if applicant.applied_at else 'N/A' }}
+            &nbsp;·&nbsp; Status:
+            <strong id="status-display" style="color: var(--primary);">{{ applicant.status }}</strong>
+        </p>
+        <button onclick="startChatWith('{{ applicant.job_seeker_id }}')" class="btn btn-primary" style="margin-top: 1rem; padding: 0.6rem 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.6rem; box-shadow: 0 4px 12px rgba(37,99,235,0.25);">
+            <span style="font-size: 1.1rem;">💬</span> Message Candidate
+        </button>
+    </div>
+    
+<!-- Task List Progress -->
+<!-- [x] Improve Chat Hub empty state in chat_hub.html -->
+<!-- [x] Update chat.js to handle empty conversation lists more gracefully -->
+<!-- [x] Add a direct "Message" button to the application list in applications.html -->
+<!-- [x] Enhance the "Message Candidate" button visibility in applicant_detail.html -->
+
+
+    <!-- Overall score badge -->
+    <div style="text-align: center; flex-shrink: 0;">
+        {% if applicant.final_score %}
+            {% set score = applicant.final_score %}
+            {% if score >= 85 %}
+                <div style="background-color: #dcfce7; color: #166534; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 1.5rem; font-weight: bold; margin: 0 auto;">{{ score }}<span style="font-size: 0.7rem; font-weight: normal;">%</span></div>
+                <p style="margin: 0.4rem 0 0 0; font-size: 0.75rem; color: #166534;">Excellent Match 🔥</p>
+            {% elif score >= 60 %}
+                <div style="background-color: #fef08a; color: #854d0e; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 1.5rem; font-weight: bold; margin: 0 auto;">{{ score }}<span style="font-size: 0.7rem; font-weight: normal;">%</span></div>
+                <p style="margin: 0.4rem 0 0 0; font-size: 0.75rem; color: #854d0e;">Good Match</p>
+            {% else %}
+                <div style="background-color: #fee2e2; color: #991b1b; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 1.5rem; font-weight: bold; margin: 0 auto;">{{ score }}<span style="font-size: 0.7rem; font-weight: normal;">%</span></div>
+                <p style="margin: 0.4rem 0 0 0; font-size: 0.75rem; color: #991b1b;">Low Match</p>
+            {% endif %}
+        {% else %}
+            <div style="border: 2px dashed var(--border); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; color: var(--text-secondary); font-size: 0.7rem; text-align: center; line-height: 1.2;">Not<br>Evaluated</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Page Tabs -->
+<div style="display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 2rem;">
+    <a href="#candidate-profile" onclick="showTab('candidate-profile')" id="tab-candidate-profile"
+        style="padding: 0.75rem 1.5rem; text-decoration: none; font-weight: 600; border-bottom: 2px solid var(--primary); margin-bottom: -2px; color: var(--primary); cursor: pointer;">
+        🧑‍🎓 Candidate Profile
+    </a>
+    <a href="#ai-summary" onclick="showTab('ai-summary')" id="tab-ai-summary"
+        style="padding: 0.75rem 1.5rem; text-decoration: none; font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-secondary); cursor: pointer;">
+        🤖 AI Summary
+    </a>
+    <a href="#skill-scoring" onclick="showTab('skill-scoring')" id="tab-skill-scoring"
+        style="padding: 0.75rem 1.5rem; text-decoration: none; font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-secondary); cursor: pointer;">
+        📊 Skill Scoring
+    </a>
+    {% if applicant.resume_filename %}
+    <a href="#resume-view" onclick="showTab('resume-view')" id="tab-resume-view"
+        style="padding: 0.75rem 1.5rem; text-decoration: none; font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-secondary); cursor: pointer;">
+        📄 Resume
+    </a>
+    {% endif %}
+</div>
+
+<!-- === CANDIDATE PROFILE TAB === -->
+<div id="panel-candidate-profile">
+    <!-- Contact Info -->
+    <div class="card" style="margin-bottom: 1.5rem; display: flex; gap: 2rem; align-items: center;">
+        <div style="flex: 1;">
+            <p style="margin: 0 0 0.2rem 0; font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Email Address</p>
+            <p style="margin: 0; font-size: 1.1rem; color: var(--text);">{{ applicant.email }}</p>
+        </div>
+        <div style="flex: 1;">
+            <p style="margin: 0 0 0.2rem 0; font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Phone Number</p>
+            <p style="margin: 0; font-size: 1.1rem; color: var(--text);">{{ applicant.phone or '<span style="color:var(--text-secondary);font-style:italic;">Not provided</span>'|safe }}</p>
+        </div>
+    </div>
+
+    <!-- Experience -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+            <h3 style="margin: 0;">Experience</h3>
+            <span style="background: var(--primary-light); color: var(--primary); padding: 0.3rem 0.8rem; border-radius: 20px; font-weight: 600; font-size: 0.85rem;">{{ applicant.experience_type or 'Fresher' }}</span>
+        </div>
+        
+        {% if applicant.experience_type == 'Experienced' or applicant.experience_type == 'Intern' %}
+            {% if applicant.experience_details %}
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                {% for exp in applicant.experience_details %}
+                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem;">
+                        <h4 style="margin: 0 0 0.3rem 0; color: var(--primary);">{{ exp.role }}</h4>
+                        <p style="margin: 0 0 0.5rem 0; font-weight: 600;">{{ exp.company }}</p>
+                        <p style="margin: 0 0 0.8rem 0; font-size: 0.9rem; color: var(--text-secondary);">📅 {{ exp.duration }}</p>
+                        {% if exp.cert_name %}
+                            <div style="display: inline-block; background: white; border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.85rem;">
+                                📎 {{ exp.cert_name }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <p style="color: var(--text-secondary); font-style: italic;">No specific experience entries provided.</p>
+            {% endif %}
+        {% else %}
+            <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 1.25rem; color: #15803d; font-weight: 500;">
+                🎓 This candidate is a Fresher. No prior professional experience.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Education -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <h3 style="margin: 0 0 1.5rem 0; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);">Education</h3>
+        {% if applicant.education_details %}
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for edu in applicant.education_details %}
+                <div style="background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h4 style="margin: 0 0 0.3rem 0;">{{ edu.college }}</h4>
+                        <p style="margin: 0 0 0.2rem 0; color: var(--primary); font-weight: 600;">{{ edu.level }}</p>
+                        <p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">Score: <strong>{{ edu.cgpa }}</strong></p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="background: var(--surface); border: 1px solid var(--border); padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">Class of {{ edu.passed_year }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: var(--text-secondary); font-style: italic;">No education details provided.</p>
+        {% endif %}
+    </div>
+
+    <!-- Skills -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <h3 style="margin: 0 0 1.5rem 0; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);">Top Skills</h3>
+        {% if applicant.skills %}
+            <div style="display: flex; flex-wrap: wrap; gap: 0.6rem;">
+                {% for skill in applicant.skills %}
+                    {% if skill is string %}
+                        <span style="background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: 500;">
+                            {{ skill }}
+                        </span>
+                    {% else %}
+                        {% set bg = '#eff6ff' %}
+                        {% set color = '#2563eb' %}
+                        {% set border = '#bfdbfe' %}
+                        {% if skill.level == 'Intermediate' %}
+                            {% set bg = '#fefce8' %}
+                            {% set color = '#b45309' %}
+                            {% set border = '#fde68a' %}
+                        {% elif skill.level == 'Advanced' %}
+                            {% set bg = '#f0fdf4' %}
+                            {% set color = '#15803d' %}
+                            {% set border = '#bbf7d0' %}
+                        {% endif %}
+                        <span style="background-color: {{ bg }}; color: {{ color }}; border: 1px solid {{ border }}; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <strong style="font-size: 0.9rem;">{{ skill.name }}</strong>
+                            <span style="font-size: 0.75rem; opacity: 0.8; border-left: 1px solid {{ color }}; padding-left: 0.4rem;">{{ skill.level }}</span>
+                        </span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: var(--text-secondary); font-style: italic;">No specific skills listed.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- === AI SUMMARY TAB === -->
+<div id="panel-ai-summary" style="display: none;">
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h3 style="margin: 0;">🤖 AI Candidate Summary</h3>
+            <button id="run-ai-btn" onclick="runAiEvaluation()" class="btn btn-primary"
+                style="padding: 0.5rem 1.25rem; font-size: 0.9rem;">
+                Run AI Evaluation
+            </button>
+        </div>
+
+        <div id="ai-feedback-block"
+            style="background-color: var(--background); border-left: 4px solid var(--primary); padding: 1.25rem; border-radius: 0 var(--radius-md) var(--radius-md) 0; line-height: 1.8; font-size: 0.95rem; color: var(--text);">
+            {% if applicant.ai_feedback %}
+                {{ applicant.ai_feedback }}
+            {% else %}
+                <span style="font-style: italic; color: var(--text-secondary);">No AI evaluation yet. Click "Run AI Evaluation" to generate an AI-powered summary of this candidate.</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <h3 style="margin: 0 0 1.25rem 0;">📝 Application Questionnaire</h3>
+        
+        <div style="margin-bottom: 1.25rem;">
+            <p style="margin: 0 0 0.4rem 0; font-weight: 600; font-size: 0.95rem; color: var(--text-secondary);">How interested are you about this job/role?</p>
+            <div style="background: var(--background); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border); font-size: 0.95rem;">
+                {{ applicant.interest_reason or '<span style="color:var(--text-secondary);font-style:italic;">Not provided</span>'|safe }}
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+            <p style="margin: 0 0 0.4rem 0; font-weight: 600; font-size: 0.95rem; color: var(--text-secondary);">How immediately are you available for joining?</p>
+            <div style="background: var(--background); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border); font-size: 0.95rem;">
+                {{ applicant.availability or '<span style="color:var(--text-secondary);font-style:italic;">Not provided</span>'|safe }}
+            </div>
+        </div>
+
+        <div style="margin-bottom: 0;">
+            <p style="margin: 0 0 0.4rem 0; font-weight: 600; font-size: 0.95rem; color: var(--text-secondary);">Briefly give a short introduction about yourself</p>
+            <div style="background: var(--background); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border); font-size: 0.95rem; line-height: 1.6;">
+                {{ applicant.introduction or '<span style="color:var(--text-secondary);font-style:italic;">Not provided</span>'|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- === SKILL SCORING TAB === -->
+<div id="panel-skill-scoring" style="display: none;">
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <h3 style="margin-bottom: 1.5rem;">📊 Skill Scoring Breakdown</h3>
+
+        <!-- Scores Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+            <!-- Final Score -->
+            <div style="background-color: var(--background); border-radius: var(--radius-md); padding: 1.25rem; text-align: center;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.05em;">Overall Match</p>
+                <p id="score-final" style="font-size: 2.5rem; font-weight: bold; color: var(--primary); margin: 0;">{{ applicant.final_score or '—' }}{% if applicant.final_score %}<span style="font-size: 1rem;">%</span>{% endif %}</p>
+            </div>
+            <!-- Skills Score -->
+            <div style="background-color: var(--background); border-radius: var(--radius-md); padding: 1.25rem; text-align: center;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.05em;">Skills Matrix</p>
+                <p id="score-skills" style="font-size: 2.5rem; font-weight: bold; color: var(--text); margin: 0;">{{ applicant.skill_score or '—' }}{% if applicant.skill_score %}<span style="font-size: 1rem;">%</span>{% endif %}</p>
+            </div>
+            <!-- Experience Score -->
+            <div style="background-color: var(--background); border-radius: var(--radius-md); padding: 1.25rem; text-align: center;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.05em;">Experience Depth</p>
+                <p id="score-exp" style="font-size: 2.5rem; font-weight: bold; color: var(--text); margin: 0;">{{ applicant.experience_score or '—' }}{% if applicant.experience_score %}<span style="font-size: 1rem;">%</span>{% endif %}</p>
+            </div>
+        </div>
+
+        <!-- Progress Bars -->
+        {% if applicant.final_score %}
+        <div style="margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;"><span style="font-size: 0.9rem;">Overall Match</span><strong>{{ applicant.final_score }}%</strong></div>
+            <div style="background-color: #e5e7eb; border-radius: 999px; height: 10px;">
+                <div style="height: 10px; border-radius: 999px; background-color: var(--primary); width: {{ applicant.final_score }}%;"></div>
+            </div>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;"><span style="font-size: 0.9rem;">Skills Matrix</span><strong>{{ applicant.skill_score or 0 }}%</strong></div>
+            <div style="background-color: #e5e7eb; border-radius: 999px; height: 10px;">
+                <div style="height: 10px; border-radius: 999px; background-color: #6366f1; width: {{ applicant.skill_score or 0 }}%;"></div>
+            </div>
+        </div>
+        <div style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;"><span style="font-size: 0.9rem;">Experience Depth</span><strong>{{ applicant.experience_score or 0 }}%</strong></div>
+            <div style="background-color: #e5e7eb; border-radius: 999px; height: 10px;">
+                <div style="height: 10px; border-radius: 999px; background-color: #10b981; width: {{ applicant.experience_score or 0 }}%;"></div>
+            </div>
+        </div>
+        {% else %}
+        <p style="color: var(--text-secondary); font-style: italic; text-align: center; padding: 1.5rem 0;">Run AI Evaluation on the AI Summary tab to generate scores.</p>
+        {% endif %}
+
+        <!-- Detected Skills -->
+        <h4 style="margin-bottom: 0.75rem;">Detected Skills</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;" id="detected-skills-container">
+            {% if applicant.detected_skills %}
+                {% for skill in applicant.detected_skills.split(',') %}
+                    <span style="background-color: var(--surface); border: 1px solid var(--primary); color: var(--primary); padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.85rem;">{{ skill.strip() }}</span>
+                {% endfor %}
+            {% else %}
+                <span style="color: var(--text-secondary); font-style: italic; font-size: 0.9rem;">No specific skill keywords extracted.</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- === RESUME TAB === -->
+{% if applicant.resume_filename %}
+<div id="panel-resume-view" style="display: none;">
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 1.5rem;">
+        <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);">
+            <h3 style="margin: 0;">📄 Resume</h3>
+        </div>
+        <iframe src="{{ url_for('uploaded_file', filename=applicant.resume_filename) }}"
+            style="width: 100%; height: 720px; border: none;"
+            title="Resume of {{ applicant.fullname }}">
+        </iframe>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    const APP_ID = {{ applicant.id }};
+
+    function showTab(tabId) {
+        const panels = ['candidate-profile', 'ai-summary', 'skill-scoring', 'resume-view'];
+        panels.forEach(id => {
+            const panel = document.getElementById('panel-' + id);
+            const tab = document.getElementById('tab-' + id);
+            if (panel) panel.style.display = (id === tabId) ? 'block' : 'none';
+            if (tab) {
+                tab.style.borderBottomColor = (id === tabId) ? 'var(--primary)' : 'transparent';
+                tab.style.color = (id === tabId) ? 'var(--primary)' : 'var(--text-secondary)';
+            }
+        });
+        return false;
+    }
+
+    async function runAiEvaluation() {
+        const btn = document.getElementById('run-ai-btn');
+        const feedbackBlock = document.getElementById('ai-feedback-block');
+
+        btn.disabled = true;
+        btn.textContent = '⏳ Evaluating...';
+        feedbackBlock.innerHTML = '<span style="font-style: italic; color: var(--text-secondary);">⏳ The AI is reading the resume and crafting an evaluation. This takes about 10–15 seconds...</span>';
+
+        try {
+            const res = await fetch('/api/evaluate/' + APP_ID, { method: 'POST' });
+            const data = await res.json();
+
+            if (!res.ok) {
+                feedbackBlock.innerHTML = '<span style="color: #991b1b;">❌ Error: ' + (data.error || 'Unknown error') + '</span>';
+                btn.disabled = false;
+                btn.textContent = 'Run AI Evaluation';
+                return;
+            }
+
+            // Update feedback text
+            feedbackBlock.textContent = data.ai_feedback || 'AI did not provide feedback.';
+
+            // Update score numbers on skills tab without full reload
+            const el = (id) => document.getElementById(id);
+            if (el('score-final')) el('score-final').innerHTML = data.final_score + '<span style="font-size:1rem">%</span>';
+            if (el('score-skills')) el('score-skills').innerHTML = data.skill_score + '<span style="font-size:1rem">%</span>';
+            if (el('score-exp')) el('score-exp').innerHTML = data.experience_score + '<span style="font-size:1rem">%</span>';
+
+            btn.textContent = '✅ Re-run Evaluation';
+            btn.disabled = false;
+
+            // Reload page so progress bars refresh properly
+            setTimeout(() => window.location.reload(), 1500);
+
+        } catch (err) {
+            feedbackBlock.innerHTML = '<span style="color: #991b1b;">❌ Network error: ' + err.message + '</span>';
+            btn.disabled = false;
+            btn.textContent = 'Run AI Evaluation';
+        }
+    }
+</script>
+
+<!-- Socket.io & Chat JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}

@@ -19,9 +19,12 @@
             </a>
             <div class="nav-links">
                 <a href="{{ url_for('home') }}" class="nav-link">Home</a>
-                <!-- Optional: Show different links if logged in vs logged out -->
                 {% if session.get('user_id') %}
-                <span class="nav-link">Welcome, {{ session.get('fullname') }}</span>
+                <a href="{{ url_for('chat.chat_hub') }}" class="nav-link">💬 Messages</a>
+                <span class="nav-link" style="color: var(--text-secondary); font-weight: 500;">Welcome, {{ session.get('fullname') }}</span>
+                {% if session.get('role') == 'job_seeker' %}
+                <a href="{{ url_for('dashboard.seeker_profile') }}" class="nav-link" style="font-weight: 500;">Profile</a>
+                {% endif %}
                 <a href="{{ url_for('auth.logout') }}" class="btn btn-primary" style="background-color: #ef4444;">Log
                     Out</a>
                 {% else %}
