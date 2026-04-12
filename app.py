@@ -76,4 +76,4 @@ if __name__ == "__main__":
     init_db()
     print("[SUCCESS] Server is starting on http://127.0.0.1:5000")
     # use_reloader=False is critical to avoid the double-start crash with eventlet on Windows
-    socketio.run(app, debug=True, host='127.0.0.1', port=5000, use_reloader=False)
+    socketio.run(app, debug=True, host='127.0.0.1', port=5000, use_reloader=False, allow_unsafe_werkzeug=True)

@@ -110,15 +110,34 @@
     --msg-them: #f1f5f9;
 }
 
+/* Bulletproof Full-Screen Layout Overrides */
+body {
+    overflow: hidden !important; /* Prevent page-level scrolling completely */
+    height: 100vh !important; /* Lock body strictly to device height */
+}
+
+.main-content {
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important; /* Crucial to prevent nested flex blowouts */
+}
+
+.footer {
+    display: none !important;
+}
+
 .premium-chat-layout {
     display: grid;
     grid-template-columns: 350px 1fr;
-    height: calc(100vh - 140px);
+    grid-template-rows: minmax(0, 1fr); /* FORCES the row to never expand beyond container! */
+    flex: 1;
+    min-height: 0;
     background: #f8fafc;
-    border-radius: 24px;
     overflow: hidden;
-    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--border);
+    position: relative;
+    width: 100%;
 }
 
 /* Sidebar Glassmorphism */
@@ -227,6 +246,7 @@
     display: flex;
     flex-direction: column;
     position: relative;
+    min-height: 0;
 }
 
 .chat-glass-header {
@@ -270,11 +290,13 @@
 .chat-messages-container {
     flex: 1;
     overflow-y: auto;
-    padding: 2.5rem;
+    padding: 2.5rem 2.5rem 8rem 2.5rem; /* Large bottom padding for floating input */
     background: radial-gradient(circle at top right, #f8fafc, #ffffff);
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    scroll-behavior: smooth;
+    min-height: 0;
 }
 
 /* Message Bubbles */

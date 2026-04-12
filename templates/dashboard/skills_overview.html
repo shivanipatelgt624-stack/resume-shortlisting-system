@@ -75,8 +75,8 @@
 
         <!-- AI Feedback snippet -->
         {% if applicant.ai_feedback %}
-        <p style="font-size:0.82rem;color:var(--text-secondary);border-left:3px solid {% if loop.index == 1 %}#f59e0b{% elif loop.index == 2 %}#6366f1{% else %}#cd7f32{% endif %};padding-left:0.75rem;margin:0;line-height:1.6;">
-            {{ applicant.ai_feedback[:260] }}{% if applicant.ai_feedback|length > 260 %}…{% endif %}
+        <p style="font-size:0.85rem;color:var(--text-secondary);border-left:3px solid {% if loop.index == 1 %}#f59e0b{% elif loop.index == 2 %}#6366f1{% else %}#cd7f32{% endif %};padding-left:0.75rem;margin:0;line-height:1.6;white-space:pre-wrap;">
+            {{ applicant.ai_feedback }}
         </p>
         {% endif %}
 

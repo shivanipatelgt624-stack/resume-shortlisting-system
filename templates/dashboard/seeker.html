@@ -3,9 +3,20 @@
 {% block title %}Job Seeker Dashboard | Resume Shortlisting System{% endblock %}
 
 {% block content %}
-<div class="dashboard-header" style="margin-bottom: 2rem;">
-    <h2>Available Jobs</h2>
-    <p style="color: var(--text-secondary);">Browse and apply for the latest opportunities.</p>
+<div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: white; padding: 1.5rem 2rem; border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+    <div>
+        <h2 style="margin: 0; font-size: 1.5rem;">Ready to Apply?</h2>
+        <p style="color: var(--text-secondary); margin: 0.25rem 0 0 0;">Browse and apply for the latest opportunities.</p>
+    </div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+        <div style="text-align: right; display: none; @media (min-width: 768px) { display: block; }">
+            <p style="margin: 0; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Your Status</p>
+            <p style="margin: 0; font-size: 0.9rem; font-weight: 600; color: var(--primary);">Profile Complete ✓</p>
+        </div>
+        <a href="{{ url_for('dashboard.seeker_profile') }}" class="btn btn-primary" style="padding: 0.75rem 1.5rem; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
+            👤 Manage Profile
+        </a>
+    </div>
 </div>
 
 {% if error %}

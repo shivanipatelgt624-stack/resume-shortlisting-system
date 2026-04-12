@@ -397,6 +397,25 @@ def update_seeker_profile():
     finally:
         conn.close()
 
+@api_bp.route('/api/profile/update', methods=['POST'])
+def update_personal_profile():
+    """Update primary user details like phone number."""
+    data = request.json
+    phone = data.get('phone')
+    user_id = session.get('user_id')
+    
+    conn = db_config.get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET phone = %s WHERE id = %s", (phone, user_id))
+        conn.commit()
+        session['phone'] = phone
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
 @api_bp.route('/api/profile/upload-photo', methods=['POST'])
 def upload_profile_photo():
     if 'photo' not in request.files:

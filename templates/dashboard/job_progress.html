@@ -32,8 +32,7 @@
         {% set stage = 1 %}
         {% if status == 'Viewed' %}{% set stage = 2 %}
         {% elif status == 'Evaluating' %}{% set stage = 3 %}
-        {% elif status == 'Shortlisted' %}{% set stage = 4 %}
-        {% elif status in ['Hired', 'Rejected'] %}{% set stage = 5 %}{% endif %}
+        {% elif status in ['Shortlisted', 'Hired', 'Rejected'] %}{% set stage = 4 %}{% endif %}
 
         <!-- Stages -->
         <div style="display: flex; justify-content: space-between; position: relative; z-index: 2;">
@@ -67,19 +66,11 @@
 
             <!-- Step 4: Shortlisted -->
             <div style="text-align: center; flex: 1;">
-                <div style="width: 48px; height: 48px; border-radius: 50%; background-color: {{ '#10b981' if stage >= 4 else '#f3f4f6' }}; color: {{ 'white' if stage >= 4 else '#9ca3af' }}; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; font-size: 1.25rem; box-shadow: 0 0 0 4px white;">
+                {% set final_color = '#10b981' if status == 'Hired' else ('#ef4444' if status == 'Rejected' else ('#10b981' if stage >= 4 else '#f3f4f6')) %}
+                <div style="width: 48px; height: 48px; border-radius: 50%; background-color: {{ final_color }}; color: {{ 'white' if stage >= 4 else '#9ca3af' }}; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; font-size: 1.25rem; box-shadow: 0 0 0 4px white;">
                     {{ '✓' if stage >= 4 else '4' }}
                 </div>
                 <div style="font-weight: 600; font-size: 0.85rem; color: {{ 'var(--text)' if stage >= 4 else 'var(--text-secondary)' }};">Shortlisted</div>
-            </div>
-
-            <!-- Step 5: Completed -->
-            <div style="text-align: center; flex: 1;">
-                {% set final_color = '#10b981' if status == 'Hired' else ('#ef4444' if status == 'Rejected' else '#f3f4f6') %}
-                <div style="width: 48px; height: 48px; border-radius: 50%; background-color: {{ final_color }}; color: {{ 'white' if stage == 5 else '#9ca3af' }}; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; font-size: 1.25rem; box-shadow: 0 0 0 4px white;">
-                    {{ '✓' if stage == 5 else '5' }}
-                </div>
-                <div style="font-weight: 600; font-size: 0.85rem; color: {{ 'var(--text)' if stage == 5 else 'var(--text-secondary)' }};">Completed</div>
             </div>
 
         </div>
@@ -112,9 +103,9 @@
             {% elif status == 'Evaluating' %}
                 <p>Your profile is being actively evaluated by our AI shortlisting engine and the management team. Good luck!</p>
             {% elif status == 'Shortlisted' %}
-                <p>Great news! You have been shortlisted for this role. The recruiter has likely sent you a message in our **[Messages Hub]({{ url_for('chat.chat_hub') }})** with next steps.</p>
+                <p>Great news! You have been shortlisted for this role. The recruiter has likely sent you a message with next steps.</p>
                 <div style="margin-top: 1.5rem;">
-                    <a href="{{ url_for('chat.chat_hub') }}" class="btn btn-primary" style="text-decoration: none;">Go to Messages Hub</a>
+                    <a href="{{ url_for('chat.chat_hub') }}" class="btn btn-primary" style="text-decoration: none;">Go to Messages</a>
                 </div>
             {% elif status == 'Hired' %}
                 <p>We are excited to move forward with your profile! Our HR team will reach out to you within 24-48 hours via email or phone for the next steps.</p>
